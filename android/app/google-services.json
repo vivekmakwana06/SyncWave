@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "53886520858",
+    "project_id": "syncmusicapp-5ca99",
+    "storage_bucket": "syncmusicapp-5ca99.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:53886520858:android:9c868ac323fa4028a0cba3",
+        "android_client_info": {
+          "package_name": "com.example.sync_music"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKKuvgXuS0iAD2WBXruUOyPuNR_bstVLg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
