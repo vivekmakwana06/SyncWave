@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:math';
-import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
-import 'package:uuid/uuid.dart';
 
 class MusicDetailPage extends StatefulWidget {
   final String title;

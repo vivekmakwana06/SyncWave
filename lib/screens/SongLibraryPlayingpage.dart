@@ -1,7 +1,11 @@
 import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart';
 
 class MusicPlayPage extends StatefulWidget {
   final String musicName;
@@ -81,7 +85,7 @@ class _MusicPlayPageState extends State<MusicPlayPage>
   @override
   void dispose() {
     assetsAudioPlayer.dispose();
-    _rotationController.dispose(); // Dispose of the animation controller
+    _rotationController.dispose();
     super.dispose();
   }
 
@@ -110,6 +114,53 @@ class _MusicPlayPageState extends State<MusicPlayPage>
       }
       assetsAudioPlayer.seek(newPosition);
     });
+  }
+
+  Future<void> addToDownloads() async {
+    // Open the database
+    final database = await openDatabase(
+      path.join(await getDatabasesPath(), 'downloads.db'),
+      version: 1,
+      onCreate: (db, version) async {
+        // Create the 'downloads' table
+        await db.execute(
+          'CREATE TABLE IF NOT EXISTS downloads(id INTEGER PRIMARY KEY, musicName TEXT, code TEXT, downloadUrl TEXT, documentId TEXT)',
+        );
+      },
+    );
+
+    // Ensure the 'downloads' table is created before inserting data
+    await database.transaction((txn) async {
+      // Create the 'downloads' table if it doesn't exist
+      await txn.execute(
+        'CREATE TABLE IF NOT EXISTS downloads(id INTEGER PRIMARY KEY, musicName TEXT, code TEXT, downloadUrl TEXT, documentId TEXT)',
+      );
+
+      await txn.rawInsert(
+        'INSERT OR REPLACE INTO downloads (musicName, code, downloadUrl, documentId) VALUES (?, ?, ?, ?)',
+        [
+          widget.musicName,
+          widget.code,
+          widget.downloadUrl,
+          widget.documentId,
+        ],
+      );
+    });
+
+    // Display a SnackBar to show the download success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Song Downloaded successfully....',
+          style: GoogleFonts.kanit(
+            fontWeight: FontWeight.bold,
+            color: Color.fromARGB(255, 236, 146, 3),
+            fontSize: 20,
+          ),
+        ),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -361,7 +412,9 @@ class _MusicPlayPageState extends State<MusicPlayPage>
                               color: Color.fromARGB(255, 236, 146, 3),
                               size: 30,
                             ),
-                            onPressed: () {},
+                            onPressed: () {
+                              addToDownloads();
+                            },
                           ),
                         ],
                       ),

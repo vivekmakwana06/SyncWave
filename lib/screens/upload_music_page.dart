@@ -53,7 +53,6 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
     return null;
   }
 
-// ...
 
   void _loadUserName() async {
     String? userEmail = await getUserName();

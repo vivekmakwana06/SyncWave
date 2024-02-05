@@ -36,6 +36,7 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
   Duration pos = const Duration();
   Duration duration = const Duration(seconds: 594);
   Duration position = const Duration();
+  int timeDifference = 0; // Added timeDifference variable
 
   late FirebaseFirestore firestore;
   late StreamSubscription<DocumentSnapshot> subscription;
@@ -92,6 +93,10 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
     // Calculate the starting point for syncing playback
     int syncStartTime = widget.currentPosition.inMilliseconds;
     syncStartTime += DateTime.now().millisecond;
+    timeDifference = syncStartTime - DateTime.now().millisecondsSinceEpoch;
+
+    // Apply time difference to sync device's seekbar position
+    syncStartTime -= timeDifference;
     audioPlayer.seek(Duration(milliseconds: syncStartTime));
 
     _timer = Timer.periodic(const Duration(microseconds: 1), (timer) {
@@ -119,8 +124,12 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
 
   void updateSyncDocument() {
     final docSync = firestore.collection("sync").doc(widget.title);
+
+    // Apply time difference to adjust the position sent to Firestore
+    final adjustedPosition = position.inMilliseconds + timeDifference;
+
     docSync.update({
-      'currentPosition': position.inMilliseconds,
+      'currentPosition': adjustedPosition,
       'isPlaying': isPlaying,
     });
   }

@@ -28,6 +28,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   var imageDownloadUrl, songDownloadUrl;
   PlatformFile? imageResult, songResult;
   Future<String?> _uploadComplete = Future.value(null);
+
   List<String> uploadedMusicNames = [];
 
   void addTextField() {
@@ -82,7 +83,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             uploadedMusicNames.add(snapshot.data!);
 
                             return Container(
-                              width: 300, // Adjust the width as needed
+                              width: 500, // Adjust the width as needed
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -189,6 +190,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
         String fileNameWithoutExtension =
             path.basenameWithoutExtension(selectedFile.path ?? '');
 
+        // Set the uploaded song name to the _uploadComplete variable
+        setState(() {
+          _uploadComplete = Future.value(fileNameWithoutExtension);
+        });
+
         DocumentReference musicDocumentReference =
             await firestore.collection('Music').add({
           'name': fileNameWithoutExtension,
@@ -223,6 +229,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
           print('Audio uploaded successfully!');
         }
 
+        // Add the uploaded music name to the list
+        uploadedMusicNames.add(fileNameWithoutExtension);
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -239,10 +248,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
         setState(() {
           isUploading = false;
           uploadProgress = 0.0;
+          // Add a new text field for the next song
+          addTextField();
         });
-
-        // Add a new text field for the next song
-        addTextField();
       } else {
         // User canceled the file picker
       }
@@ -256,55 +264,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
     try {
       // Check if there is at least one text field
       if (textFields.isNotEmpty) {
-        // for (int i = 0; i < textFields.length; i++) {
-        //   // Simulate the file upload process (Replace this with actual upload code)
-        //   await Future.delayed(Duration(seconds: 2));
-
-        //   // Access the corresponding file path or upload logic based on your UI
-        //   // String filePath = 'sample/file/path/$i';
-
-        //   // Simulate the successful upload (Replace this with actual upload code)
-        //   // String downloadUrl = 'sample/download/url/$i';
-
-        //   // Use the data to update Firebase
-        //   // String fileNameWithoutExtension = 'sample_filename_$i';
-
-        //   DocumentReference musicDocumentReference =
-        //       await firestore.collection('Music').add({
-        //     // 'name': fileNameWithoutExtension,
-        //     // 'file': downloadUrl,
-        //   });
-
-        //   String musicDocumentId = musicDocumentReference.id;
-
-        //   // Check if there is a current folder ID
-        //   if (_currentFolderId == null || _currentFolderId!.isEmpty) {
-        //     // If no current folder ID, create a new folder
-        //     DocumentReference folderDocumentReference =
-        //         await firestore.collection('ArtistList').add({
-        //       'name': musicNameController.text,
-        //       // 'listOfMusic': [musicDocumentId],
-        //     });
-
-        //     _currentFolderId = folderDocumentReference.id;
-        //   } else {
-        //     // If there is a current folder ID, update the existing folder
-        //     DocumentReference folderDocumentReference =
-        //         firestore.collection('ArtistList').doc(_currentFolderId!);
-
-        //     await folderDocumentReference.update({
-        //       'listOfMusic': FieldValue.arrayUnion([musicDocumentId]),
-        //     });
-
-        //     print('Document updated successfully!');
-        //   }
-        // }
-
         // Clear the form fields
         clearPickedImage();
         musicNameController.clear();
 
-        // Clear the text fields list
+        // Clear the uploaded music names list
+        uploadedMusicNames.clear();
+
+        // Reset the text fields list
         // setState(() {
         //   textFields.clear();
         //   index = 1;
@@ -318,9 +285,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
             content: Text(
               'Data uploaded successfully!',
               style: GoogleFonts.kanit(
-                  fontWeight: FontWeight.bold,
-                  color: Color.fromARGB(255, 236, 146, 3),
-                  fontSize: 15),
+                fontWeight: FontWeight.bold,
+                color: Color.fromARGB(255, 236, 146, 3),
+                fontSize: 15,
+              ),
             ),
           ),
         );
@@ -339,9 +307,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
           content: Text(
             'Error uploading data. Please try again.',
             style: GoogleFonts.kanit(
-                fontWeight: FontWeight.bold,
-                color: Color.fromARGB(255, 236, 3, 3),
-                fontSize: 15),
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(255, 236, 3, 3),
+              fontSize: 15,
+            ),
           ),
         ),
       );
@@ -635,15 +604,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 const SizedBox(
                   width: 30,
                 ),
-                ...textFields,
-                Text(
-                  '${(uploadProgress * 100).toStringAsFixed(2)}%',
-                  style: const TextStyle(
-                    color: Color(0xFF2986dd),
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                Padding(
+                  padding: const EdgeInsets.only(left: 20),
+                  child: Text(
+                    '${(uploadProgress * 100).toStringAsFixed(2)}%',
+                    style: const TextStyle(
+                      color: Color.fromARGB(255, 236, 146, 3),
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
+                ...textFields,
                 const SizedBox(
                   width: 40,
                 ),

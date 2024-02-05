@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:sync_music/screens/sync_music.dart';
-import 'package:sync_music/theme/colors.dart';
 
 class homePage extends StatefulWidget {
   final String? title;
@@ -136,6 +135,23 @@ class _homePageState extends State<homePage> {
                   'Join Host',
                   style: TextStyle(fontSize: 22, color: Colors.white),
                 ),
+              ),
+            ),
+            SizedBox(
+              height: 30,
+            ),
+            Divider(
+              thickness: .5,
+            ),
+            SizedBox(
+              height: 10,
+            ),
+            Text(
+              'Connected Devices...',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFFFFFFF),
+                fontSize: 20,
               ),
             ),
           ],

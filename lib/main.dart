@@ -2,15 +2,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path_provider/path_provider.dart'; 
 import 'package:sync_music/AdminPanel/AdminPage.dart';
 import 'package:sync_music/screens/LoginRegisterPage.dart';
 import 'package:sync_music/screens/root_app.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
-      
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-
+   initPathProvider(); // Initialize path_provider
   runApp(
     MaterialApp(
       theme: ThemeData(
@@ -22,8 +23,12 @@ void main() async {
   );
 }
 
+void initPathProvider() async {
+  await getApplicationDocumentsDirectory();
+}
+
 class MyApp extends StatelessWidget {
-  final String userEmail; 
+  final String userEmail;
 
   const MyApp({Key? key, required this.userEmail}) : super(key: key);
 
@@ -140,7 +145,7 @@ class _SplashScreenState extends State<SplashScreen>
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center, 
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SizedBox(
               height: 400,
