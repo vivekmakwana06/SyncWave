@@ -1,20 +1,27 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:sync_music/SyncPlayerLibrary/SongLibrary.dart';
+import 'package:sync_music/SyncPlayerLibrary/SongLibraryPlayingpage.dart';
+import 'package:sync_music/screens/InbuildPlaylist.dart';
 import 'package:sync_music/screens/sync_music.dart';
 
 class homePage extends StatefulWidget {
-  final String? title;
-  final String? description;
-  final String? img;
-  final String? songUrl;
+  final String? userEmail;
+  final TextEditingController emailController;
+  final num? partyId;
+  final String? random;
+  final Timestamp? PartyDateTime;
+  final int? playerId;
 
   const homePage({
     Key? key,
-    this.title,
-    this.description,
-    this.img,
-    this.songUrl,
+    required this.userEmail,
+    required this.emailController, // Receive the controller
+    this.partyId,
+    this.random,
+    this.PartyDateTime,
+    this.playerId,
   }) : super(key: key);
 
   @override
@@ -22,17 +29,10 @@ class homePage extends StatefulWidget {
 }
 
 class _homePageState extends State<homePage> {
-  String syncCode = "";
-  int? result;
-  bool syncMusic = false;
+  bool isHostCreated = false;
 
   @override
   Widget build(BuildContext context) {
-    var random = Random();
-    final docSync =
-        FirebaseFirestore.instance.collection("sync").doc(result.toString());
-    result ??= 100000 + random.nextInt(999999 - 100000);
-
     return Scaffold(
       backgroundColor: Color(0xFF1a1b1f),
       appBar: AppBar(
@@ -86,14 +86,7 @@ class _homePageState extends State<homePage> {
             ),
             ElevatedButton(
               onPressed: () async {
-                syncMusic = true;
-                docSync.set({
-                  'musicName': widget.title ?? "",
-                  'artistName': widget.description ?? "",
-                  'songUrl': widget.songUrl ?? "",
-                  'imgUrl': widget.img ?? ""
-                });
-                openDialog();
+                await createHost();
               },
               style: ElevatedButton.styleFrom(
                 primary: Color.fromARGB(255, 236, 146, 3),
@@ -115,13 +108,32 @@ class _homePageState extends State<homePage> {
             SizedBox(height: 30),
             ElevatedButton(
               onPressed: () {
-                // Navigate to SyncMusic page or your desired page
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SyncMusic(),
-                  ),
-                );
+                int playerId = 1; // You need to define the playerId here
+
+                if (playerId == 1) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SyncMusicCollection(),
+                    ),
+                  ).then((value) {
+                    if (value != null && value) {
+                      setState(() {
+                        isHostCreated = true;
+                      });
+                    }
+                  });
+                } else if (playerId == 2) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SyncMusicInBuildPlaylist(),
+                    ),
+                  );
+                } else {
+                  // Handle the case when playerId is neither 1 nor 2
+                  print("Invalid playerId");
+                }
               },
               style: ElevatedButton.styleFrom(
                 primary: Color.fromARGB(255, 236, 146, 3),
@@ -137,6 +149,15 @@ class _homePageState extends State<homePage> {
                 ),
               ),
             ),
+            if (isHostCreated)
+              Text(
+                'Successfully Joined',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                  fontSize: 18,
+                ),
+              ),
             SizedBox(
               height: 30,
             ),
@@ -160,7 +181,41 @@ class _homePageState extends State<homePage> {
     );
   }
 
-  Future openDialog() => showDialog(
+  Future<void> createHost() async {
+    if (widget.userEmail != null) {
+      QuerySnapshot<Map<String, dynamic>> latestPartySnapshot =
+          await FirebaseFirestore.instance
+              .collection('party')
+              .orderBy('party_id', descending: true)
+              .limit(1)
+              .get();
+
+      int newPartyId = (latestPartySnapshot.docs.isEmpty)
+          ? 1
+          : int.parse(latestPartySnapshot.docs.first['party_id']) + 1;
+
+      var random = Random();
+      int generatedCode = 100000 + random.nextInt(999999 - 100000);
+
+      await FirebaseFirestore.instance
+          .collection("party")
+          .doc(generatedCode.toString())
+          .set({
+        'party_id': newPartyId.toString(),
+        'host_id': widget.userEmail.toString(),
+        'party_code': generatedCode.toString(),
+        'party_dateTime': DateTime.now(),
+      }).then((value) {
+        openDialog(generatedCode.toString());
+      }).catchError((error) {
+        print("Failed to create host: $error");
+      });
+    } else {
+      print("User email is null");
+    }
+  }
+
+  Future<void> openDialog(String generatedCode) => showDialog(
         context: context,
         builder: (context) {
           return AlertDialog(
@@ -184,17 +239,26 @@ class _homePageState extends State<homePage> {
                       color: Color.fromARGB(255, 255, 255, 255),
                     ),
                     child: Text(
-                      result.toString(),
+                      generatedCode,
                       style: TextStyle(color: Colors.green, fontSize: 50),
                     ),
                   ),
                   SizedBox(height: 10),
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.of(context).pop();
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => InbuildPlaylist(
+                            userEmail: widget.userEmail,
+                            generatedCode: generatedCode.toString(),
+                            isHostCreated: true,
+                          ),
+                        ),
+                      );
                     },
                     child: Text(
-                      "OK",
+                      "Let's Create...",
                       style: TextStyle(color: Colors.white),
                     ),
                     style: ElevatedButton.styleFrom(

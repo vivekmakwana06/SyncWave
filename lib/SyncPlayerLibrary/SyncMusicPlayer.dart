@@ -1,26 +1,30 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:sync_music/SyncPlayerLibrary/SyncMusicDetail.dart';
 import 'package:sync_music/screens/sync_music_detail_page.dart';
 import 'package:sync_music/theme/colors.dart';
 // import 'package:youtube_sync_music/screens/sync_music_detail_page.dart';
 // import 'package:youtube_sync_music/theme/colors.dart';
 
-class SyncMusicPlayer extends StatefulWidget {
-  final String docId;
-  const SyncMusicPlayer({Key? key, required this.docId}) : super(key: key);
+class SyncMusicPlayer1 extends StatefulWidget {
+  final String? userEmail;
+  final String? generatedCode;
+  const SyncMusicPlayer1({Key? key, this.userEmail, this.generatedCode})
+      : super(key: key);
 
   @override
-  State<SyncMusicPlayer> createState() => _SyncMusicPlayerState();
+  State<SyncMusicPlayer1> createState() => _SyncMusicPlayer1State();
 }
 
-class _SyncMusicPlayerState extends State<SyncMusicPlayer> {
-  CollectionReference sync = FirebaseFirestore.instance.collection('sync');
+class _SyncMusicPlayer1State extends State<SyncMusicPlayer1> {
+  CollectionReference sync =
+      FirebaseFirestore.instance.collection('SyncInbuildPlaylist');
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: FutureBuilder<DocumentSnapshot>(
-        future: sync.doc(widget.docId.toString()).get(),
+        future: sync.doc(widget.generatedCode.toString()).get(),
         builder:
             (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
           if (snapshot.hasError) {
@@ -35,21 +39,20 @@ class _SyncMusicPlayerState extends State<SyncMusicPlayer> {
             Map<String, dynamic>? data =
                 snapshot.data?.data() as Map<String, dynamic>?;
 
-            // Extracting data with null-aware operators to handle potential null values
-            Duration currentPosition =
-                Duration(milliseconds: data?['currentPosition'] ?? 0);
-            String title = data?['musicName'] ?? 'Unknown Title';
-            String description = data?['artistName'] ?? 'Unknown Artist';
-            String imgUrl = data?['imgUrl'] ?? '';
-            String songUrl = data?['songUrl'] ?? '';
+            String musicName = data?['musicName'] ?? 'Unknown Title';
+            String code =
+                data?['code'] ?? ''; // Assuming 'code' is the image URL
+            String downloadUrl = data?['downloadUrl'] ?? '';
+            String documentId = data?['documentId'] ?? '';
+            String userEmail = data?['userEmail'] ?? '';
+            String generatedCode = data?['generatedCode'] ?? '';
 
-            return SyncMusicDetailPage(
-              currentPosition: currentPosition,
-              title: title,
-              description: description,
-              color: Colors.red,
-              img: imgUrl,
-              songUrl: songUrl,
+            return SyncMusicPlayPage(
+              // docId: widget.docId,
+              musicName: musicName,
+              code: code,
+              downloadUrl: downloadUrl,
+              documentId: documentId,
             );
           }
 

@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
-import 'package:sync_music/screens/SongLibrary.dart';
 import 'package:sync_music/screens/music_detail_page.dart';
 
 import '../json/songs_json.dart';
@@ -34,14 +33,20 @@ class _MusicPageState extends State<MusicPage>
       appBar: AppBar(
         backgroundColor: Color(0xFF1a1b1f),
         elevation: 0,
-        title: const Row(
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            color: Color.fromARGB(255, 236, 146, 3),
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        titleSpacing: 0,
+        title: Row(
           children: [
-            SizedBox(
-              width: 10,
-              height: 5,
-            ),
             Icon(
-              Icons.music_note,
+              Icons.collections,
               color: Color.fromARGB(255, 236, 146, 3),
               size: 30,
             ),
@@ -53,7 +58,7 @@ class _MusicPageState extends State<MusicPage>
                   height: 10,
                 ),
                 Text(
-                  'Discovery',
+                  'Collection',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Color(0xFFFFFFFF),
@@ -62,7 +67,7 @@ class _MusicPageState extends State<MusicPage>
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'Let\'s listen to something cool today',
+                  'Play Created Custom Playlist Songs...',
                   style: TextStyle(
                     fontWeight: FontWeight.w200,
                     color: Colors.white54,
@@ -73,25 +78,18 @@ class _MusicPageState extends State<MusicPage>
             )
           ],
         ),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          indicatorColor: Color.fromARGB(255, 236, 146, 3),
-          tabs: [
-            Tab(text: 'Trending Song'),
-            Tab(text: 'User Collection'),
-          ],
-        ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          TrendingSong(),
+          // TrendingSong(),
           CustomCollection(0),
         ],
       ),
     );
   }
+
+  //
 
   Widget CustomCollection(int tabIndex) {
     return StatefulBuilder(
@@ -322,75 +320,75 @@ class _MusicPageState extends State<MusicPage>
     );
   }
 
-  Widget TrendingSong() {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            height: 650,
-            color: const Color(0xFF1a1b1f),
-            child: Column(
-              children: [
-                const Row(
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.only(left: 24, top: 16),
-                      child: Text(
-                        "Enjoy The Trending Songs🔥",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                Expanded(
-                  flex: 7,
-                  child: YourScreen(),
-                ),
-                SizedBox(
-                  height: 20,
-                ),
-                const Row(
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.only(left: 24, top: 16),
-                      child: Text(
-                        "Famous Artist Playlist💖",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                Expanded(
-                  flex: 7,
-                  child: YourScreen(),
-                ),
-                Expanded(
-                  flex: 14,
-                  child: Container(
-                    width: double.infinity,
-                    color: const Color(0xFF1a1b1f),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget TrendingSong() {
+  //   return SingleChildScrollView(
+  //     child: Column(
+  //       children: [
+  //         Container(
+  //           width: double.infinity,
+  //           height: 650,
+  //           color: const Color(0xFF1a1b1f),
+  //           child: Column(
+  //             children: [
+  //               const Row(
+  //                 children: [
+  //                   Padding(
+  //                     padding: EdgeInsets.only(left: 24, top: 16),
+  //                     child: Text(
+  //                       "Enjoy The Trending Songs🔥",
+  //                       style: TextStyle(
+  //                           color: Colors.white,
+  //                           fontSize: 18,
+  //                           fontWeight: FontWeight.w600),
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //               const SizedBox(
+  //                 height: 20,
+  //               ),
+  //               Expanded(
+  //                 flex: 7,
+  //                 child: YourScreen(),
+  //               ),
+  //               SizedBox(
+  //                 height: 20,
+  //               ),
+  //               const Row(
+  //                 children: [
+  //                   Padding(
+  //                     padding: EdgeInsets.only(left: 24, top: 16),
+  //                     child: Text(
+  //                       "Famous Artist Playlist💖",
+  //                       style: TextStyle(
+  //                           color: Colors.white,
+  //                           fontSize: 18,
+  //                           fontWeight: FontWeight.w600),
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //               const SizedBox(
+  //                 height: 20,
+  //               ),
+  //               Expanded(
+  //                 flex: 7,
+  //                 child: YourScreen(),
+  //               ),
+  //               Expanded(
+  //                 flex: 14,
+  //                 child: Container(
+  //                   width: double.infinity,
+  //                   color: const Color(0xFF1a1b1f),
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Future<List<String>> getSongTypesFromFirestore(int index) async {
     // Fetch song types from Firestore based on the index

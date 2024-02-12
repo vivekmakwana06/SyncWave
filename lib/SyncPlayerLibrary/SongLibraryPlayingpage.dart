@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -6,18 +8,27 @@ import 'package:shimmer/shimmer.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class MusicPlayPage extends StatefulWidget {
-  final String musicName;
-  final String code;
-  final String downloadUrl;
-  final String documentId;
+  final String? musicName;
+  final String? code;
+  final String? downloadUrl;
+  final String? documentId;
+  final int? playerId;
+  final String? userEmail;
+  final String? generatedCode;
 
-  MusicPlayPage(
-      {required this.musicName,
-      required this.code,
-      required this.downloadUrl,
-      required this.documentId});
+  MusicPlayPage({
+    this.musicName,
+    this.code,
+    this.downloadUrl,
+    this.documentId,
+    this.playerId = 2,
+    this.userEmail,
+    this.generatedCode,
+  });
 
   @override
   State<MusicPlayPage> createState() => _MusicPlayPageState();
@@ -32,16 +43,49 @@ class _MusicPlayPageState extends State<MusicPlayPage>
   final assetsAudioPlayer = AssetsAudioPlayer();
   late AnimationController _rotationController;
   bool musicLoaded = false;
+  bool isDownloaded = false;
+  bool isPlaying = true;
+  bool syncMusic = false;
+  late FirebaseFirestore firestore;
+  late StreamSubscription<DocumentSnapshot> subscription;
+
+  int? result;
 
   @override
   void initState() {
     super.initState();
 
+    firestore = FirebaseFirestore.instance;
+
+    // Listen for changes in the sync document
+    subscription = firestore
+        .collection("SyncInbuildPlaylist")
+        .doc(widget.documentId)
+        .snapshots()
+        .listen((event) {
+      if (event.exists) {
+        setState(() {
+          _position = Duration(milliseconds: event["currentPosition"]);
+          isPlaying = event["isPlaying"];
+        });
+
+        // Seek to the updated position
+        assetsAudioPlayer.seek(_position);
+
+        // Handle play/pause state
+        if (isPlaying) {
+          assetsAudioPlayer.play();
+        } else {
+          assetsAudioPlayer.pause();
+        }
+      }
+    });
+
     // Initialize the audio player and open the music file from the asset path
     assetsAudioPlayer.open(
-      Audio.network(widget.downloadUrl),
+      Audio.network(widget.downloadUrl!),
       autoStart: true,
-      showNotification: true,
+      showNotification: true, // Ensure showNotification is set to true
     );
 
     // Initialize the animation controller
@@ -72,7 +116,8 @@ class _MusicPlayPageState extends State<MusicPlayPage>
       });
     });
 
-    // Listen to changes in the play state and start/stop the animation
+    // Listen to changes in the play state and start/stop the
+    // animation
     assetsAudioPlayer.isPlaying.listen((isPlaying) {
       if (isPlaying) {
         _rotationController.repeat();
@@ -80,6 +125,80 @@ class _MusicPlayPageState extends State<MusicPlayPage>
         _rotationController.stop();
       }
     });
+    checkDownloadStatus();
+    playMusic(widget.downloadUrl!);
+  }
+
+  void playMusic(String url) {
+    final audio = Audio.network(
+      url,
+      metas: Metas(
+        title: widget.musicName,
+        // artist: widget.hostCode ??
+        //     '', // Provide a default value if hostCode is null
+        image: MetasImage.asset('assets/logo.png'),
+      ),
+    );
+
+    assetsAudioPlayer.open(
+      audio,
+      showNotification: true,
+      playInBackground: PlayInBackground.enabled,
+      // loopMode: playerLoopMode,
+      autoStart: true,
+    );
+
+    assetsAudioPlayer.currentPosition.listen((event) {
+      setState(() {
+        _position = event;
+        if (syncMusic) {
+          // Update sync document when music is playing
+          updateSyncDocument();
+        }
+      });
+    });
+
+    assetsAudioPlayer.current.listen((event) {
+      setState(() {
+        _duration = event!.audio.duration;
+      });
+    });
+
+    assetsAudioPlayer.isPlaying.listen((event) {
+      setState(() {
+        isPlaying = event;
+      });
+    });
+  }
+
+  void updateSyncDocument() {
+    final docSync =
+        firestore.collection("SyncInbuildPlaylist").doc(result.toString());
+    docSync.update({
+      'currentPosition': _position.inMilliseconds,
+      'isPlaying': isPlaying,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> checkDownloadStatus() async {
+    // Your logic to check if the song is downloaded goes here
+    // You can check if the song is downloaded by checking if its details are present in the local database
+    final database = await openDatabase(
+      path.join(await getDatabasesPath(), 'downloads.db'),
+      version: 1,
+    );
+    final List<Map<String, dynamic>> downloads = await database.query(
+      'downloads',
+      where: 'documentId = ?',
+      whereArgs: [widget.documentId],
+    );
+    if (downloads.isNotEmpty) {
+      // Song is downloaded
+      setState(() {
+        isDownloaded = true;
+      });
+    }
   }
 
   @override
@@ -117,50 +236,80 @@ class _MusicPlayPageState extends State<MusicPlayPage>
   }
 
   Future<void> addToDownloads() async {
-    // Open the database
+    final Dio dio = Dio();
+    final String downloadPath =
+        await getApplicationDocumentsDirectory().then((value) => value.path);
+
+    try {
+      final Response response = await dio.download(
+        widget.downloadUrl!,
+        '$downloadPath/${widget.musicName}.mp3', // Adjust the file extension based on your audio format
+        onReceiveProgress: (received, total) {
+          if (total != -1) {
+            // Handle download progress if needed
+          }
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Download successful, now save details to the database
+        await saveToDatabase('$downloadPath/${widget.musicName}.mp3');
+        setState(() {
+          isDownloaded = true; // Update the state variable
+        });
+        print('Download successful');
+      } else {
+        // Handle download error
+        print('Download error: ${response.statusCode}');
+      }
+    } catch (error) {
+      // Handle download error
+      print('Download error: $error');
+    }
+  }
+
+  Future<void> saveToDatabase(String localFilePath) async {
     final database = await openDatabase(
       path.join(await getDatabasesPath(), 'downloads.db'),
       version: 1,
-      onCreate: (db, version) async {
-        // Create the 'downloads' table
-        await db.execute(
-          'CREATE TABLE IF NOT EXISTS downloads(id INTEGER PRIMARY KEY, musicName TEXT, code TEXT, downloadUrl TEXT, documentId TEXT)',
+    );
+
+    try {
+      await database.transaction((txn) async {
+        await txn.execute(
+          'CREATE TABLE IF NOT EXISTS downloads(id INTEGER PRIMARY KEY, musicName TEXT, code TEXT, downloadUrl TEXT, documentId TEXT, localFilePath TEXT)',
         );
-      },
-    );
 
-    // Ensure the 'downloads' table is created before inserting data
-    await database.transaction((txn) async {
-      // Create the 'downloads' table if it doesn't exist
-      await txn.execute(
-        'CREATE TABLE IF NOT EXISTS downloads(id INTEGER PRIMARY KEY, musicName TEXT, code TEXT, downloadUrl TEXT, documentId TEXT)',
-      );
+        await txn.rawInsert(
+          'INSERT OR REPLACE INTO downloads (musicName, code, downloadUrl, documentId, localFilePath) VALUES (?, ?, ?, ?, ?)',
+          [
+            widget.musicName,
+            widget.code,
+            widget.downloadUrl,
+            widget.documentId,
+            localFilePath,
+          ],
+        );
+      });
 
-      await txn.rawInsert(
-        'INSERT OR REPLACE INTO downloads (musicName, code, downloadUrl, documentId) VALUES (?, ?, ?, ?)',
-        [
-          widget.musicName,
-          widget.code,
-          widget.downloadUrl,
-          widget.documentId,
-        ],
-      );
-    });
-
-    // Display a SnackBar to show the download success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Song Downloaded successfully....',
-          style: GoogleFonts.kanit(
-            fontWeight: FontWeight.bold,
-            color: Color.fromARGB(255, 236, 146, 3),
-            fontSize: 20,
+      // Display a SnackBar to show the download success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Song Downloaded successfully....',
+            style: GoogleFonts.kanit(
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(255, 236, 146, 3),
+              fontSize: 20,
+            ),
           ),
+          duration: Duration(seconds: 2),
         ),
-        duration: Duration(seconds: 2),
-      ),
-    );
+      );
+    } catch (error) {
+      // Handle database error
+      print('Database error: $error');
+    }
   }
 
   @override
@@ -198,9 +347,10 @@ class _MusicPlayPageState extends State<MusicPlayPage>
                   width: MediaQuery.of(context).size.width * 0.9,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(18),
-                    color:
-                        widget.code.isNotEmpty ? null : const Color(0xFF30384b),
-                    image: widget.code.isNotEmpty
+                    color: widget.code!.isNotEmpty
+                        ? null
+                        : const Color(0xFF30384b),
+                    image: widget.code!.isNotEmpty
                         ? DecorationImage(
                             image: NetworkImage(widget.code as String),
                             fit: BoxFit.cover,
@@ -219,12 +369,12 @@ class _MusicPlayPageState extends State<MusicPlayPage>
                             child: CircleAvatar(
                               maxRadius: 80,
                               backgroundImage: widget.code is String &&
-                                      widget.code.isNotEmpty
+                                      widget.code!.isNotEmpty
                                   ? NetworkImage(widget.code as String)
                                   : AssetImage('assets/logo.png')
                                       as ImageProvider<Object>?,
                               child: widget.code is String &&
-                                      widget.code.isNotEmpty
+                                      widget.code!.isNotEmpty
                                   ? null
                                   : const Icon(
                                       color: Colors.white,
@@ -244,7 +394,7 @@ class _MusicPlayPageState extends State<MusicPlayPage>
                 ),
               ),
               SizedBox(
-                height: 20,
+                height: 10,
               ),
               Padding(
                 padding: const EdgeInsets.only(left: 28.0, right: 28.0),
@@ -257,7 +407,7 @@ class _MusicPlayPageState extends State<MusicPlayPage>
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Text(
-                          widget.musicName,
+                          widget.musicName ?? '',
                           style: const TextStyle(
                             color: Color(0xFFFFFFFF),
                             fontSize: 20,
@@ -266,38 +416,41 @@ class _MusicPlayPageState extends State<MusicPlayPage>
                         ),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 30),
-                      child: Container(
-                        height: 42,
-                        width: 50,
-                        child: CircleAvatar(
-                          backgroundColor: Color.fromARGB(255, 52, 50, 50),
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.favorite,
-                              color: isFavorite ? Colors.red : Colors.white,
-                            ),
-                            onPressed: () {
-                              // Toggle the favorite state
-                              setState(() {
-                                isFavorite = !isFavorite;
-                              });
-
-                              // Add/remove the documentId to/from the "favoriteMusic" collection
-                              if (isFavorite) {
-                                // Add the documentId to the "favoriteMusic" collection
-                                addToFavorites(widget.documentId);
-                              } else {
-                                // Remove the documentId from the "favoriteMusic" collection
-                                removeFromFavorites(widget.documentId);
-                              }
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
+                ),
+              ),
+              SizedBox(
+                height: 10,
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 260),
+                child: Container(
+                  height: 42,
+                  width: 50,
+                  child: CircleAvatar(
+                    backgroundColor: Color.fromARGB(255, 52, 50, 50),
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.favorite,
+                        color: isFavorite ? Colors.red : Colors.white,
+                      ),
+                      onPressed: () {
+                        // Toggle the favorite state
+                        setState(() {
+                          isFavorite = !isFavorite;
+                        });
+
+                        // Add/remove the documentId to/from the "favoriteMusic" collection
+                        if (isFavorite) {
+                          // Add the documentId to the "favoriteMusic" collection
+                          addToFavorites(widget.documentId!);
+                        } else {
+                          // Remove the documentId from the "favoriteMusic" collection
+                          removeFromFavorites(widget.documentId!);
+                        }
+                      },
+                    ),
+                  ),
                 ),
               ),
               SizedBox(
@@ -408,12 +561,32 @@ class _MusicPlayPageState extends State<MusicPlayPage>
                           ),
                           IconButton(
                             icon: Icon(
-                              Icons.download,
+                              isDownloaded
+                                  ? Icons.done
+                                  : Icons
+                                      .download, // Use isDownloaded to determine the icon
                               color: Color.fromARGB(255, 236, 146, 3),
                               size: 30,
                             ),
                             onPressed: () {
-                              addToDownloads();
+                              if (isDownloaded) {
+                                // Song is already downloaded, show a message
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Song is already downloaded',
+                                      style: TextStyle(
+                                        fontSize: 25,
+                                        color: Color.fromARGB(255, 236, 146, 3),
+                                      ),
+                                    ),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              } else {
+                                // Song is not downloaded, download it
+                                addToDownloads();
+                              }
                             },
                           ),
                         ],

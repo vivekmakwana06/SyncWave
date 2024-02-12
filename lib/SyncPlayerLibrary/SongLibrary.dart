@@ -1,9 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:sync_music/screens/SongLibraryPlayingpage.dart';
+import 'package:sync_music/SyncPlayerLibrary/SongLibraryPlayingpage.dart';
 
 class YourScreen extends StatefulWidget {
+  final String userEmail;
+  final String generatedCode;
+
+  const YourScreen(
+      {super.key, required this.userEmail, required this.generatedCode});
+
   @override
   _YourScreenState createState() => _YourScreenState();
 }
@@ -29,28 +35,29 @@ class _YourScreenState extends State<YourScreen> {
   }
 
   Widget buildArtistList(List<QueryDocumentSnapshot> documents) {
-    return Container(
-      color: const Color(0xFF1a1b1f),
-      height: 150,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: documents.length,
-        itemBuilder: (context, index) {
-          Map<String, dynamic> artistData =
-              documents[index].data() as Map<String, dynamic>;
+    return Expanded(
+      child: Container(
+        color: const Color(0xFF1a1b1f),
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: documents.length,
+          itemBuilder: (context, index) {
+            Map<String, dynamic> artistData =
+                documents[index].data() as Map<String, dynamic>;
 
-          // Check if required fields exist in the document
-          String artistName =
-              artistData.containsKey('name') ? artistData['name'] : '';
-          String artistImage =
-              artistData.containsKey('image') ? artistData['image'] : '';
+            // Check if required fields exist in the document
+            String artistName =
+                artistData.containsKey('name') ? artistData['name'] : '';
+            String artistImage =
+                artistData.containsKey('image') ? artistData['image'] : '';
 
-          List<String> musicIds = artistData.containsKey('listOfMusic')
-              ? List<String>.from(artistData['listOfMusic'])
-              : [];
+            List<String> musicIds = artistData.containsKey('listOfMusic')
+                ? List<String>.from(artistData['listOfMusic'])
+                : [];
 
-          return buildArtistCard(context, artistName, artistImage, musicIds);
-        },
+            return buildArtistCard(context, artistName, artistImage, musicIds);
+          },
+        ),
       ),
     );
   }
@@ -74,34 +81,48 @@ class _YourScreenState extends State<YourScreen> {
           },
         );
       },
-      child: Container(
-        width: 110,
-        margin: const EdgeInsets.all(8),
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          image: artistImage.isNotEmpty
-              ? DecorationImage(
-                  image: NetworkImage(artistImage),
-                  fit: BoxFit.cover,
-                )
-              : const DecorationImage(
-                  image: AssetImage("assets/placeholder_image.jpg"),
-                  fit: BoxFit.cover,
-                ),
-        ),
+      child: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              artistName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+            Container(
+              width: 110,
+              height: 110,
+              margin: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                image: artistImage.isNotEmpty
+                    ? DecorationImage(
+                        image: NetworkImage(artistImage),
+                        fit: BoxFit.cover,
+                      )
+                    : const DecorationImage(
+                        image: AssetImage("assets/placeholder_image.jpg"),
+                        fit: BoxFit.cover,
+                      ),
+              ),
+              // child: Column(
+              //   mainAxisAlignment: MainAxisAlignment.end,
+              //   crossAxisAlignment: CrossAxisAlignment.start,
+              //   children: [
+
+              //     const SizedBox(height: 8),
+              //   ],
+              // ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 15),
+              child: Text(
+                artistName,
+                maxLines: 2,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -269,16 +290,18 @@ class MusicDetailsPage extends StatelessWidget {
                                 isScrollControlled: true,
                                 builder: (context) {
                                   return FractionallySizedBox(
-                                      heightFactor:
-                                          1.0, // Adjust the factor as needed
-                                      child: MusicPlayPage(
-                                          musicName: musicDetails[index]['data']
-                                              ['name'],
-                                          code: artistImage,
-                                          downloadUrl: musicDetails[index]
-                                              ['data']['file'],
-                                          documentId: musicDetails[index]
-                                              ['musicId']));
+                                    heightFactor:
+                                        1.0, // Adjust the factor as needed
+                                    child: MusicPlayPage(
+                                      musicName: musicDetails[index]['data']
+                                          ['name'],
+                                      code: artistImage,
+                                      downloadUrl: musicDetails[index]['data']
+                                          ['file'],
+                                      documentId: musicDetails[index]
+                                          ['musicId'],
+                                    ),
+                                  );
                                 },
                               );
                             },

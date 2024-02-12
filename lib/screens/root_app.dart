@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sync_music/screens/InbuildPlaylist.dart';
 import 'package:sync_music/screens/PlaylistPage.dart';
 import 'package:sync_music/screens/favorite.dart';
 import 'package:sync_music/screens/MusicPage.dart';
@@ -22,6 +23,15 @@ class RootApp extends StatefulWidget {
 
 class _RootAppState extends State<RootApp> {
   int activeTab = 0;
+
+  late TextEditingController emailController; // Initialize here
+
+  @override
+  void initState() {
+    super.initState();
+    emailController = TextEditingController(); // Initialize the controller
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,13 +45,14 @@ class _RootAppState extends State<RootApp> {
     return IndexedStack(
       index: activeTab,
       children: [
-        homePage(),
-        // const SyncMusic(),
-        const MusicPage(),
-        // const Favorite(),
-
-        // const Playlist(),
-
+        homePage(
+            userEmail: widget.userEmail,
+            emailController:
+                emailController), // Pass the controller to homePage
+        // const MusicPage(),
+        InbuildPlaylist(
+          isHostCreated: false,
+        ),
         Upload()
       ],
     );

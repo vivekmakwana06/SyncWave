@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path/path.dart';
 import 'package:sync_music/screens/LoginRegisterPage.dart';
+import 'package:sync_music/screens/MusicPage.dart';
 import 'package:sync_music/screens/PlaylistPage.dart';
 import 'package:sync_music/screens/downloadSong.dart';
 import 'package:sync_music/screens/favorite.dart';
@@ -52,7 +53,6 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
     }
     return null;
   }
-
 
   void _loadUserName() async {
     String? userEmail = await getUserName();
@@ -256,171 +256,213 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
       body: TabBarView(
         controller: _tabController,
         children: [
-          Container(
-            child: Center(
-              child: Padding(
-                padding: EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    SizedBox(height: 40),
-                    // Display the welcome message
-                    Text(
-                      'Welcome to,', // Use the user's name here
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        fontSize: 25,
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Text(
-                      '$_userName',
-                      style: GoogleFonts.nunito(
-                        color: Color.fromARGB(255, 236, 146, 3),
-                        fontSize: 22,
-                      ),
-                    ),
-                    SizedBox(height: 50),
-                    Divider(thickness: .4),
-                    Padding(
-                      padding: const EdgeInsets.all(15.0),
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => Favorite()),
-                          );
-                        },
-                        child: Container(
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 10,
-                              ),
-                              Icon(
-                                Icons.favorite,
-                                size: 18,
-                                color: Colors.white,
-                              ),
-                              SizedBox(
-                                width: 5,
-                              ),
-                              Text(
-                                'Favorite Song',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFFFFFFFF),
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Divider(thickness: .4),
-                    Padding(
-                      padding: const EdgeInsets.all(15.0),
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => Playlist()),
-                          );
-                        },
-                        child: Container(
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 10,
-                              ),
-                              Icon(
-                                Icons.playlist_add,
-                                size: 18,
-                                color: Colors.white,
-                              ),
-                              SizedBox(
-                                width: 5,
-                              ),
-                              Text(
-                                'Playlist Song',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFFFFFFFF),
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Divider(thickness: .4),
-                    Padding(
-                      padding: const EdgeInsets.all(15.0),
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => DownloadedSong()),
-                          );
-                        },
-                        child: Container(
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 10,
-                              ),
-                              Icon(
-                                Icons.download,
-                                size: 18,
-                                color: Colors.white,
-                              ),
-                              SizedBox(
-                                width: 5,
-                              ),
-                              Text(
-                                'Download Song',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFFFFFFFF),
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Divider(thickness: .4),
-                    SizedBox(
-                      height: 65,
-                    ),
-                    ElevatedButton(
-                      onPressed: () async {
-                        // Perform logout
-                        await FirebaseAuth.instance.signOut();
-
-                        // Navigate to the login page
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => AuthGate()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        primary: Colors.red, // Set the button color
-                        onPrimary: Colors.white, // Set the text color
-                      ),
-                      child: Text(
-                        'Logout',
+          SingleChildScrollView(
+            child: Container(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      SizedBox(height: 30),
+                      // Display the welcome message
+                      Text(
+                        'Welcome to,', // Use the user's name here
                         style: TextStyle(
-                          fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 25,
                         ),
                       ),
-                    ),
-                  ],
+                      SizedBox(height: 10),
+                      Text(
+                        '$_userName',
+                        style: GoogleFonts.nunito(
+                          color: Color.fromARGB(255, 236, 146, 3),
+                          fontSize: 22,
+                        ),
+                      ),
+                      SizedBox(height: 50),
+                      Divider(thickness: .4),
+                      Padding(
+                        padding: const EdgeInsets.all(15.0),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => Favorite()),
+                            );
+                          },
+                          child: Container(
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 10,
+                                ),
+                                Icon(
+                                  Icons.favorite,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(
+                                  width: 5,
+                                ),
+                                Text(
+                                  'Favorite Song',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFFFFFFF),
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Divider(thickness: .4),
+                      Padding(
+                        padding: const EdgeInsets.all(15.0),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => Playlist()),
+                            );
+                          },
+                          child: Container(
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 10,
+                                ),
+                                Icon(
+                                  Icons.playlist_add,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(
+                                  width: 5,
+                                ),
+                                Text(
+                                  'Playlist Song',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFFFFFFF),
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Divider(thickness: .4),
+                      Padding(
+                        padding: const EdgeInsets.all(15.0),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => DownloadedSong()),
+                            );
+                          },
+                          child: Container(
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 10,
+                                ),
+                                Icon(
+                                  Icons.download,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(
+                                  width: 5,
+                                ),
+                                Text(
+                                  'Download Song',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFFFFFFF),
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Divider(thickness: .4),
+                      Padding(
+                        padding: const EdgeInsets.all(15.0),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => MusicPage()),
+                            );
+                          },
+                          child: Container(
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 10,
+                                ),
+                                Icon(
+                                  Icons.download,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(
+                                  width: 5,
+                                ),
+                                Text(
+                                  'Custom Collection',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFFFFFFF),
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Divider(thickness: .4),
+                      SizedBox(
+                        height: 20,
+                      ),
+                      ElevatedButton(
+                        onPressed: () async {
+                          // Perform logout
+                          await FirebaseAuth.instance.signOut();
+
+                          // Navigate to the login page
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => AuthGate()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.red, // Set the button color
+                          onPrimary: Colors.white, // Set the text color
+                        ),
+                        child: Text(
+                          'Logout',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -433,7 +475,7 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     SizedBox(
-                      height: 10,
+                      height: 5,
                     ),
                     // Divider(thickness: .1),
                     ElevatedButton(
@@ -447,7 +489,7 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
                         onPrimary: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
                     Container(
                       width: 180,
                       height: 180,
@@ -462,7 +504,7 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
                     Divider(thickness: .4),
                     ElevatedButton(
                       onPressed: () => selectSong(),
@@ -484,7 +526,7 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
                       ),
                     ),
                     Divider(thickness: .4),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
                     TextField(
                       controller: artistName,
                       style: TextStyle(color: Colors.white),
@@ -511,7 +553,7 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
                     Divider(thickness: .4),
                     const SizedBox(height: 15),
                     ElevatedButton(

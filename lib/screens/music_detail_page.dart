@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'dart:math';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:assets_audio_player/assets_audio_player.dart' hide LoopMode;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import '../theme/colors.dart';
 
 class MusicDetailPage extends StatefulWidget {
@@ -11,6 +12,7 @@ class MusicDetailPage extends StatefulWidget {
   final Color color;
   final String img;
   final String songUrl;
+  final int? playerId;
 
   const MusicDetailPage({
     Key? key,
@@ -19,20 +21,26 @@ class MusicDetailPage extends StatefulWidget {
     required this.color,
     required this.img,
     required this.songUrl,
+    this.playerId = 1,
   }) : super(key: key);
 
   @override
   _MusicDetailPageState createState() => _MusicDetailPageState();
 }
 
-class _MusicDetailPageState extends State<MusicDetailPage> {
-  AudioPlayer audioPlayer = AudioPlayer(mode: PlayerMode.MEDIA_PLAYER);
+class _MusicDetailPageState extends State<MusicDetailPage>
+    with SingleTickerProviderStateMixin {
+  late final AssetsAudioPlayer assetsAudioPlayer;
+  late final AudioPlayer player;
+
   int? result;
   bool isPlaying = true;
   bool syncMusic = false;
   Random random = Random();
   bool isFavorite = false;
   Duration duration = const Duration();
+  LoopMode playerLoopMode = LoopMode.one;
+
   Duration position = const Duration();
   late FirebaseFirestore firestore;
   late StreamSubscription<DocumentSnapshot> subscription;
@@ -40,6 +48,10 @@ class _MusicDetailPageState extends State<MusicDetailPage> {
   @override
   void initState() {
     super.initState();
+
+    assetsAudioPlayer = AssetsAudioPlayer();
+    player = AudioPlayer();
+
     result = 100000 + random.nextInt(999999 - 100000);
 
     // Initialize Firestore
@@ -63,16 +75,25 @@ class _MusicDetailPageState extends State<MusicDetailPage> {
     playMusic(widget.songUrl);
   }
 
-  void playMusic(String url) async {
-    audioPlayer.setReleaseMode(ReleaseMode.LOOP);
-    audioPlayer.play(url);
-    audioPlayer.onDurationChanged.listen((event) {
-      setState(() {
-        duration = event;
-      });
-    });
+  void playMusic(String url) {
+    final audio = Audio.network(
+      url,
+      metas: Metas(
+        title: widget.title,
+        artist: widget.description,
+        image: MetasImage.network(widget.img),
+      ),
+    );
 
-    audioPlayer.onAudioPositionChanged.listen((event) {
+    assetsAudioPlayer.open(
+      audio,
+      showNotification: true,
+      playInBackground: PlayInBackground.enabled,
+      // loopMode: playerLoopMode,
+      autoStart: true,
+    );
+
+    assetsAudioPlayer.currentPosition.listen((event) {
       setState(() {
         position = event;
         if (syncMusic) {
@@ -81,12 +102,16 @@ class _MusicDetailPageState extends State<MusicDetailPage> {
       });
     });
 
-    audioPlayer.onPlayerStateChanged.listen((state) {
-      if (state == AudioPlayerState.PLAYING) {
-        isPlaying = true;
-      } else {
-        isPlaying = false;
-      }
+    assetsAudioPlayer.current.listen((event) {
+      setState(() {
+        duration = event!.audio.duration;
+      });
+    });
+
+    assetsAudioPlayer.isPlaying.listen((event) {
+      setState(() {
+        isPlaying = event;
+      });
     });
   }
 
@@ -101,7 +126,7 @@ class _MusicDetailPageState extends State<MusicDetailPage> {
 
   seekMusic(int sec) {
     Duration newPosition = Duration(seconds: sec);
-    audioPlayer.seek(newPosition);
+    assetsAudioPlayer.seek(newPosition);
 
     // Update sync document with new position and playing state
     if (syncMusic) {
@@ -111,9 +136,9 @@ class _MusicDetailPageState extends State<MusicDetailPage> {
 
   void handlePlayPause() async {
     if (isPlaying) {
-      await audioPlayer.pause();
+      await assetsAudioPlayer.pause();
     } else {
-      await audioPlayer.resume();
+      await assetsAudioPlayer.play();
     }
 
     // Update sync document with new playing state
@@ -137,9 +162,9 @@ class _MusicDetailPageState extends State<MusicDetailPage> {
 
   @override
   void dispose() {
-    // Cancel the subscription when the widget is disposed
     subscription.cancel();
-    audioPlayer.dispose();
+    assetsAudioPlayer.dispose();
+    player.dispose();
     super.dispose();
   }
 
@@ -149,7 +174,7 @@ class _MusicDetailPageState extends State<MusicDetailPage> {
       if (newPosition > duration) {
         newPosition = duration;
       }
-      audioPlayer.seek(newPosition);
+      assetsAudioPlayer.seek(newPosition);
     });
   }
 
@@ -159,7 +184,7 @@ class _MusicDetailPageState extends State<MusicDetailPage> {
       if (newPosition < Duration.zero) {
         newPosition = Duration.zero;
       }
-      audioPlayer.seek(newPosition);
+      assetsAudioPlayer.seek(newPosition);
     });
   }
 
@@ -385,12 +410,12 @@ class _MusicDetailPageState extends State<MusicDetailPage> {
                     ),
                     onPressed: () async {
                       if (isPlaying) {
-                        await audioPlayer.pause();
+                        await assetsAudioPlayer.pause();
                         setState(() {
                           isPlaying = false;
                         });
                       } else {
-                        await audioPlayer.resume();
+                        await assetsAudioPlayer.play();
                         setState(() {
                           isPlaying = true;
                         });
