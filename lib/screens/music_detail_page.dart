@@ -1,27 +1,31 @@
 import 'dart:async';
 import 'dart:math';
+
 import 'package:assets_audio_player/assets_audio_player.dart' hide LoopMode;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import '../theme/colors.dart';
 
 class MusicDetailPage extends StatefulWidget {
-  final String title;
-  final String description;
-  final Color color;
-  final String img;
-  final String songUrl;
-  final int? playerId;
-
+  final String? title;
+  final String? description;
+  final Color? color;
+  final String? img;
+  final String? songUrl;
+  final bool? partyStatus;
+  final String? result;
+  final bool? syncMusicEnabled;
   const MusicDetailPage({
     Key? key,
-    required this.title,
-    required this.description,
-    required this.color,
-    required this.img,
-    required this.songUrl,
-    this.playerId = 1,
+    this.title,
+    this.result,
+    this.partyStatus,
+    this.description,
+    this.color,
+    this.img,
+    this.songUrl,
+    this.syncMusicEnabled,
   }) : super(key: key);
 
   @override
@@ -33,13 +37,16 @@ class _MusicDetailPageState extends State<MusicDetailPage>
   late final AssetsAudioPlayer assetsAudioPlayer;
   late final AudioPlayer player;
 
-  int? result;
+  late String _userName;
+  int? generatedCode;
   bool isPlaying = true;
   bool syncMusic = false;
   Random random = Random();
   bool isFavorite = false;
   Duration duration = const Duration();
   LoopMode playerLoopMode = LoopMode.one;
+
+  int timeDifference = 0;
 
   Duration position = const Duration();
   late FirebaseFirestore firestore;
@@ -49,30 +56,29 @@ class _MusicDetailPageState extends State<MusicDetailPage>
   void initState() {
     super.initState();
 
+    _userName = '';
+    _loadUserName();
     assetsAudioPlayer = AssetsAudioPlayer();
     player = AudioPlayer();
 
-    result = 100000 + random.nextInt(999999 - 100000);
-
-    // Initialize Firestore
     firestore = FirebaseFirestore.instance;
 
-    // Subscribe to changes in the sync document
     subscription = firestore
         .collection("sync")
-        .doc(result.toString())
+        .doc(widget.result.toString())
         .snapshots()
         .listen((event) {
       if (event.exists) {
-        // Update the state based on the changes in the sync document
-        setState(() {
-          position = Duration(milliseconds: event["currentPosition"]);
-          isPlaying = event["isPlaying"];
-        });
+        if (event.data()!.containsKey("currentPosition")) {
+          setState(() {
+            position = Duration(milliseconds: event["currentPosition"]);
+            isPlaying = event["isPlaying"];
+          });
+        }
       }
     });
 
-    playMusic(widget.songUrl);
+    playMusic(widget.songUrl!);
   }
 
   void playMusic(String url) {
@@ -81,7 +87,7 @@ class _MusicDetailPageState extends State<MusicDetailPage>
       metas: Metas(
         title: widget.title,
         artist: widget.description,
-        image: MetasImage.network(widget.img),
+        image: MetasImage.network(widget.img!),
       ),
     );
 
@@ -89,7 +95,6 @@ class _MusicDetailPageState extends State<MusicDetailPage>
       audio,
       showNotification: true,
       playInBackground: PlayInBackground.enabled,
-      // loopMode: playerLoopMode,
       autoStart: true,
     );
 
@@ -115,39 +120,81 @@ class _MusicDetailPageState extends State<MusicDetailPage>
     });
   }
 
-  void updateSyncDocument() {
-    final docSync = firestore.collection("sync").doc(result.toString());
-    docSync.update({
-      'currentPosition': position.inMilliseconds,
-      'isPlaying': isPlaying,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
+  Future<String?> getUserName() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      return user.email;
+    }
+    return null;
   }
 
-  seekMusic(int sec) {
-    Duration newPosition = Duration(seconds: sec);
-    assetsAudioPlayer.seek(newPosition);
-
-    // Update sync document with new position and playing state
-    if (syncMusic) {
-      updateSyncDocument();
+  void _loadUserName() async {
+    String? userEmail = await getUserName();
+    if (userEmail != null) {
+      setState(() {
+        _userName = userEmail;
+      });
     }
   }
 
   void handlePlayPause() async {
     if (isPlaying) {
       await assetsAudioPlayer.pause();
+      setState(() {
+        isPlaying = false;
+      });
     } else {
       await assetsAudioPlayer.play();
+      setState(() {
+        isPlaying = true;
+      });
     }
+    updateSyncDocument();
+  }
 
-    // Update sync document with new playing state
+  void updateSyncDocument() {
+    final docSync = firestore.collection("sync").doc(widget.result.toString());
+
+    final adjustedPosition = position.inMilliseconds + timeDifference;
+
+    docSync.update({
+      'currentPosition': adjustedPosition,
+      'isPlaying': isPlaying,
+    });
+  }
+
+  void seekMusic(Duration newPosition) {
+    assetsAudioPlayer.seek(newPosition);
+    updateSyncDocument();
+  }
+
+  void skipForward() {
+    Duration newPosition = position + const Duration(seconds: 10);
+    if (newPosition > duration) {
+      newPosition = duration;
+    }
+    assetsAudioPlayer.seek(newPosition);
+
+    updateSyncDocument();
+  }
+
+  void skipBackward() {
+    Duration newPosition = position - const Duration(seconds: 10);
+    if (newPosition < Duration.zero) {
+      newPosition = Duration.zero;
+    }
+    assetsAudioPlayer.seek(newPosition);
+
+    updateSyncDocument();
+  }
+
+  void updateSyncOption(bool value) {
+    syncMusic = value;
     if (syncMusic) {
       updateSyncDocument();
     }
   }
 
-  // convert format time
   String formatTime(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final hours = twoDigits(duration.inHours);
@@ -168,26 +215,6 @@ class _MusicDetailPageState extends State<MusicDetailPage>
     super.dispose();
   }
 
-  void skipForward() {
-    setState(() {
-      Duration newPosition = position + const Duration(seconds: 10);
-      if (newPosition > duration) {
-        newPosition = duration;
-      }
-      assetsAudioPlayer.seek(newPosition);
-    });
-  }
-
-  void skipBackward() {
-    setState(() {
-      Duration newPosition = position - const Duration(seconds: 10);
-      if (newPosition < Duration.zero) {
-        newPosition = Duration.zero;
-      }
-      assetsAudioPlayer.seek(newPosition);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -202,20 +229,20 @@ class _MusicDetailPageState extends State<MusicDetailPage>
       leading: IconButton(
         icon: Icon(
           Icons.arrow_back,
-          color: Color.fromARGB(255, 236, 146, 3),
+          color: Color(0xff6157ff),
         ),
         onPressed: () {
           Navigator.pop(context); // Navigate back
         },
       ),
       titleSpacing: 0,
-      backgroundColor: black,
+      backgroundColor: Colors.black,
       elevation: 0,
       actions: const [
         IconButton(
           icon: Icon(
             Icons.more_vert_sharp,
-            color: white,
+            color: Colors.white,
           ),
           onPressed: null,
         )
@@ -224,15 +251,6 @@ class _MusicDetailPageState extends State<MusicDetailPage>
   }
 
   Widget getBody() {
-    var random = Random();
-    final docSync =
-        FirebaseFirestore.instance.collection("sync").doc(result.toString());
-    result ??= 100000 + random.nextInt(999999 - 100000);
-
-    // Inside MusicDetailPage
-    if (result != null && syncMusic) {
-      updateSyncDocument();
-    }
     var size = MediaQuery.of(context).size;
     return SingleChildScrollView(
       child: Column(
@@ -246,7 +264,7 @@ class _MusicDetailPageState extends State<MusicDetailPage>
                   height: size.width - 100,
                   decoration: BoxDecoration(boxShadow: [
                     BoxShadow(
-                        color: widget.color,
+                        color: widget.color!,
                         blurRadius: 50,
                         spreadRadius: 5,
                         offset: const Offset(-10, 40))
@@ -260,7 +278,7 @@ class _MusicDetailPageState extends State<MusicDetailPage>
                   height: size.width - 60,
                   decoration: BoxDecoration(
                       image: DecorationImage(
-                          image: NetworkImage(widget.img), fit: BoxFit.cover),
+                          image: NetworkImage(widget.img!), fit: BoxFit.cover),
                       borderRadius: BorderRadius.circular(20)),
                 ),
               )
@@ -277,10 +295,6 @@ class _MusicDetailPageState extends State<MusicDetailPage>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // const Icon(
-                  //   Icons.my_library_add,
-                  //   color: white,
-                  // ),
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -288,12 +302,12 @@ class _MusicDetailPageState extends State<MusicDetailPage>
                         Flexible(
                           flex: 2,
                           child: Text(
-                            widget.title,
+                            widget.title!,
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 18,
-                              color: white,
+                              color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -304,12 +318,12 @@ class _MusicDetailPageState extends State<MusicDetailPage>
                           child: Flexible(
                             flex: 1,
                             child: Text(
-                              widget.description,
+                              widget.description!,
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 15,
-                                color: white.withOpacity(0.5),
+                                color: Colors.white.withOpacity(0.5),
                               ),
                             ),
                           ),
@@ -317,10 +331,6 @@ class _MusicDetailPageState extends State<MusicDetailPage>
                       ],
                     ),
                   ),
-                  // const Icon(
-                  //   Icons.more_vert_sharp,
-                  //   color: white,
-                  // ),
                 ],
               ),
             ),
@@ -341,7 +351,6 @@ class _MusicDetailPageState extends State<MusicDetailPage>
                     color: isFavorite ? Colors.red : Colors.white,
                   ),
                   onPressed: () {
-                    // Toggle the favorite status
                     setState(() {
                       isFavorite = !isFavorite;
                     });
@@ -351,13 +360,16 @@ class _MusicDetailPageState extends State<MusicDetailPage>
             ),
           ),
           Slider.adaptive(
-            activeColor: primary,
-            value: position.inSeconds.clamp(0, duration.inSeconds).toDouble(),
+            activeColor: Color(0xff6157ff),
+            value: position.inSeconds
+                .toDouble()
+                .clamp(0.0, duration.inSeconds.toDouble()),
             max: duration.inSeconds.toDouble(),
             min: 0.0,
             onChanged: (value) {
               setState(() {
-                seekMusic(value.toInt());
+                seekMusic(Duration(seconds: value.toInt()));
+                position = Duration(seconds: value.toInt());
               });
             },
           ),
@@ -368,11 +380,11 @@ class _MusicDetailPageState extends State<MusicDetailPage>
               children: [
                 Text(
                   formatTime(position),
-                  style: TextStyle(color: white.withOpacity(0.5)),
+                  style: TextStyle(color: Colors.white.withOpacity(0.5)),
                 ),
                 Text(
                   formatTime(duration - position),
-                  style: TextStyle(color: white.withOpacity(0.5)),
+                  style: TextStyle(color: Colors.white.withOpacity(0.5)),
                 ),
               ],
             ),
@@ -381,7 +393,7 @@ class _MusicDetailPageState extends State<MusicDetailPage>
             height: 20,
           ),
           Padding(
-            padding: const EdgeInsets.only(left: 40, right: 30),
+            padding: const EdgeInsets.only(left: 90, right: 30),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -396,30 +408,26 @@ class _MusicDetailPageState extends State<MusicDetailPage>
                   ),
                 ),
                 IconButton(
-                    iconSize: 50,
+                    iconSize: 80,
                     icon: Container(
                       decoration: const BoxDecoration(
-                          shape: BoxShape.circle, color: primary),
+                        gradient: LinearGradient(
+                          begin: Alignment(-0.95, 0.0),
+                          end: Alignment(1.0, 0.0),
+                          colors: [Color(0xff6157ff), Color(0xffee49fd)],
+                        ),
+                        shape: BoxShape.circle,
+                      ),
                       child: Center(
                         child: Icon(
                           isPlaying ? Icons.pause : Icons.play_arrow,
-                          size: 28,
-                          color: white,
+                          size: 45,
+                          color: Colors.white,
                         ),
                       ),
                     ),
                     onPressed: () async {
-                      if (isPlaying) {
-                        await assetsAudioPlayer.pause();
-                        setState(() {
-                          isPlaying = false;
-                        });
-                      } else {
-                        await assetsAudioPlayer.play();
-                        setState(() {
-                          isPlaying = true;
-                        });
-                      }
+                      handlePlayPause();
                     }),
                 IconButton(
                   onPressed: () {
@@ -434,66 +442,55 @@ class _MusicDetailPageState extends State<MusicDetailPage>
                 SizedBox(
                   width: 10,
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 10),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(width: 2, color: Colors.white),
-                      color: Colors.black38,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            Icons.playlist_add,
-                            color: Color.fromARGB(255, 236, 146, 3),
-                            size: 30,
-                          ),
-                          onPressed: () {},
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.download,
-                            color: Color.fromARGB(255, 236, 146, 3),
-                            size: 30,
-                          ),
-                          onPressed: () {},
-                        ),
-                      ],
-                    ),
-                  ),
-                )
               ],
             ),
           ),
           GestureDetector(
             onTap: () async {
-              syncMusic = true;
-              docSync.set({
-                'musicName': widget.title,
-                'artistName': widget.description,
-                'songUrl': widget.songUrl,
-                'imgUrl': widget.img
-              });
-              openDialog();
+              if (widget.syncMusicEnabled ?? false) {
+                // Handle nullable bool
+                syncMusic = true;
+                await firestore
+                    .collection("sync")
+                    .doc(widget.result.toString())
+                    .set({
+                  'musicName': widget.title,
+                  'artistName': widget.description,
+                  'songUrl': widget.songUrl,
+                  'imgUrl': widget.img,
+                });
+                openDialog("Sync music successfully");
+              } else {
+                // Optionally display a message indicating sync music is not enabled
+              }
             },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(
-                  Icons.sync,
-                  color: primary,
-                  size: 25,
-                ),
-                SizedBox(
-                  width: 10,
-                ),
-                Text(
-                  "Sync Music",
-                  style: TextStyle(color: primary, fontSize: 25),
-                ),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.only(top: 30),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.sync,
+                    color: (widget.syncMusicEnabled ?? false)
+                        ? Color(0xffee49fd)
+                        : Colors.grey, // Handle nullable bool
+                    size: 25,
+                  ),
+                  SizedBox(
+                    width: 10,
+                  ),
+                  Text(
+                    (widget.syncMusicEnabled ?? false)
+                        ? "Sync Music"
+                        : "Sync Music Disabled", // Handle nullable bool
+                    style: TextStyle(
+                        color: (widget.syncMusicEnabled ?? false)
+                            ? Color(0xffee49fd)
+                            : Colors.grey,
+                        fontSize: 25),
+                  ),
+                ],
+              ),
             ),
           )
         ],
@@ -501,51 +498,14 @@ class _MusicDetailPageState extends State<MusicDetailPage>
     );
   }
 
-  Future openDialog() => showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text(
-              "Music Sync",
-              style: TextStyle(
-                  color: Color.fromARGB(255, 236, 146, 3), fontSize: 24),
-            ),
-            content: Container(
-              height: 140,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Color.fromARGB(255, 236, 146, 3),
-                        width: 4.0,
-                      ),
-                      borderRadius: BorderRadius.circular(8.0),
-                      color: Color.fromARGB(255, 255, 255, 255),
-                    ),
-                    child: Text(
-                      result.toString(),
-                      style: TextStyle(color: Colors.green, fontSize: 50),
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: Text(
-                      "OK",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      primary: Color.fromARGB(255, 236, 146, 3),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
+  Future openDialog(String message) async {
+    final snackBar = SnackBar(
+      content: Text(
+        message,
+        style: TextStyle(color: Colors.white),
+      ),
+      backgroundColor: Color(0xff6157ff),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
 }

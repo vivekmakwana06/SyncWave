@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:sync_music/SyncPlayerLibrary/SongLibrary.dart';
+import 'package:sync_music/screens/SongLibrary.dart';
 
 class InbuildPlaylist extends StatefulWidget {
-  final String? userEmail;
   final String? generatedCode;
   final bool isHostCreated;
 
   const InbuildPlaylist({
     Key? key,
-    this.userEmail,
     this.generatedCode,
     required this.isHostCreated,
   }) : super(key: key);
@@ -19,7 +17,30 @@ class InbuildPlaylist extends StatefulWidget {
 
 class _InbuildPlaylistState extends State<InbuildPlaylist> {
   void exitHost() {
-    Navigator.pop(context); // Navigate back to the previous page
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Are you sure?"),
+          content: Text("Do you want to exit the host?"),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                Navigator.pop(context); // Navigate back to the previous page
+              },
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -32,11 +53,12 @@ class _InbuildPlaylistState extends State<InbuildPlaylist> {
             content: Text(
               "Successfully created host, let's play song and Enjoy Party...",
               style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.green,
-                  fontWeight: FontWeight.w600),
+                fontSize: 18,
+                color: Colors.green,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            duration: Duration(seconds: 5), // Adjust the duration as needed
+            duration: Duration(seconds: 3),
           ),
         );
       });
@@ -46,28 +68,35 @@ class _InbuildPlaylistState extends State<InbuildPlaylist> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1a1b1f),
+      backgroundColor: Color(0xFF221e3b),
       appBar: AppBar(
-        backgroundColor: Color(0xFF1a1b1f),
+        backgroundColor: Color(0xFF221e3b),
         elevation: 0,
-        title: const Row(
+        title: Row(
           children: [
             SizedBox(
               width: 10,
               height: 5,
             ),
-            Icon(
-              Icons.library_books,
-              color: Color.fromARGB(255, 236, 146, 3),
-              size: 30,
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6.0),
+                gradient: LinearGradient(
+                  begin: Alignment(-0.95, 0.0),
+                  end: Alignment(1.0, 0.0),
+                  colors: [Color(0xff6157ff), Color(0xffee49fd)],
+                ),
+              ),
+              child: Icon(
+                Icons.music_note,
+                color: Colors.white,
+                size: 28,
+              ),
             ),
             SizedBox(width: 13),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  height: 10,
-                ),
                 Text(
                   "Library",
                   style: TextStyle(
@@ -77,14 +106,6 @@ class _InbuildPlaylistState extends State<InbuildPlaylist> {
                   ),
                 ),
                 SizedBox(height: 2),
-                Text(
-                  "Let's listen,sync song and enjoy party...",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w200,
-                    color: Colors.white54,
-                    fontSize: 12,
-                  ),
-                ),
               ],
             )
           ],
@@ -109,77 +130,88 @@ class _InbuildPlaylistState extends State<InbuildPlaylist> {
               ),
             )
           : null,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              height: 650,
-              color: const Color(0xFF1a1b1f),
-              child: Column(
+      body: Expanded(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Row(
                 children: [
-                  const Row(
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.only(left: 24, top: 16),
-                        child: Text(
-                          "Enjoy The Trending Songs🔥",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600),
-                        ),
+                  Padding(
+                    padding: EdgeInsets.only(left: 20, top: 16),
+                    child: Text(
+                      "Trending Songs🔥",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
                       ),
-                    ],
-                  ),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  Expanded(
-                    flex: 10,
-                    child: YourScreen(
-                      userEmail: widget.userEmail ?? '',
-                      generatedCode: widget.generatedCode ?? '',
-                    ),
-                  ),
-                  SizedBox(
-                    height: 20,
-                  ),
-                  const Row(
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.only(left: 24, top: 16),
-                        child: Text(
-                          "Famous Artist Playlist💖",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  Expanded(
-                    flex: 10,
-                    child: YourScreen(
-                      userEmail: widget.userEmail ?? '',
-                      generatedCode: widget.generatedCode ?? '',
-                    ),
-                  ),
-                  Expanded(
-                    flex: 14,
-                    child: Container(
-                      width: double.infinity,
-                      color: const Color(0xFF1a1b1f),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+              Container(
+                height: 200,
+                child: YourScreen(),
+              ),
+              Row(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(left: 20, top: 16),
+                    child: Text(
+                      "Famous Artist Playlist",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                height: 200,
+                child: YourScreen(),
+              ),
+              Row(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(left: 20, top: 16),
+                    child: Text(
+                      "Spritual(Hindi)",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                height: 200,
+                child: YourScreen(),
+              ),
+              Row(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(left: 20, top: 16),
+                    child: Text(
+                      "Top Albums-Hindi",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                height: 200,
+                child: YourScreen(),
+              ),
+            ],
+          ),
         ),
       ),
     );

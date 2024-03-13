@@ -473,14 +473,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
               MaterialPageRoute(builder: (context) => AuthGate()),
             );
           },
+          backgroundColor: Colors.red,
           child: Icon(
             Icons.logout,
             size: 30,
-            color: Colors.red,
+            color: Colors.white,
           )),
       body: Container(
         height: double.infinity,
-        color: const Color(0xFF1a1b1f),
+        color: Color(0xFF221e3b),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: SingleChildScrollView(
@@ -488,19 +489,29 @@ class _AdminDashboardState extends State<AdminDashboard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 const SizedBox(
-                  height: 40,
+                  height: 30,
                 ),
                 Padding(
                   padding: const EdgeInsets.only(left: 80),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(
-                        size: 38,
-                        Icons.admin_panel_settings,
-                        color: Color.fromARGB(255, 236, 146, 3),
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6.0),
+                          gradient: LinearGradient(
+                            begin: Alignment(-0.95, 0.0),
+                            end: Alignment(1.0, 0.0),
+                            colors: [Color(0xff6157ff), Color(0xffee49fd)],
+                          ),
+                        ),
+                        child: Icon(
+                          size: 38,
+                          Icons.admin_panel_settings,
+                          color: Colors.white,
+                        ),
                       ),
                       SizedBox(
-                        width: 10,
+                        width: 20,
                       ),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -527,7 +538,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 90),
+                const SizedBox(height: 50),
                 const Text(
                   'Name Of Folder',
                   style: TextStyle(
@@ -582,7 +593,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       image: DecorationImage(
                         image: imageDownloadUrl != null
                             ? Image.network(imageDownloadUrl).image
-                            : AssetImage("assets/logo.png"),
+                            : AssetImage(""),
                         fit: BoxFit.cover,
                       ),
                       color: Colors.grey,
@@ -609,7 +620,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   child: Text(
                     '${(uploadProgress * 100).toStringAsFixed(2)}%',
                     style: const TextStyle(
-                      color: Color.fromARGB(255, 236, 146, 3),
+                      color: Color(0xff6157ff),
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                     ),
@@ -622,20 +633,36 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 Padding(
                   padding: const EdgeInsets.only(top: 30),
                   child: Center(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        uploadDataToFirebase();
-                      },
-                      child: const Text(
-                        "Upload",
-                        style: TextStyle(
-                          fontSize: 25,
-                          color: Colors.white,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6.0),
+                        gradient: LinearGradient(
+                          begin: Alignment(-0.95, 0.0),
+                          end: Alignment(1.0, 0.0),
+                          colors: [Color(0xff6157ff), Color(0xffee49fd)],
                         ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        primary: Color.fromARGB(255, 236, 146, 3),
-                        onPrimary: Colors.white,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          uploadDataToFirebase();
+                        },
+                        child: const Text(
+                          "Upload",
+                          style: TextStyle(
+                            fontSize: 25,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          // foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          elevation:
+                              20, // Adjust the elevation to increase the button's size
+
+                          backgroundColor: Colors.transparent,
+                        ),
                       ),
                     ),
                   ),

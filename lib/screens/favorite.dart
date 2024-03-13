@@ -15,10 +15,10 @@ class _FavoriteState extends State<Favorite> {
       appBar: AppBar(
         backgroundColor: Color(0xFF1a1b1f),
         elevation: 0,
-         leading: IconButton(
+        leading: IconButton(
           icon: Icon(
             Icons.arrow_back,
-            color: Color.fromARGB(255, 236, 146, 3),
+            color: Color(0xff6157ff),
           ),
           onPressed: () {
             Navigator.pop(context); // Navigate back
@@ -27,18 +27,28 @@ class _FavoriteState extends State<Favorite> {
         titleSpacing: 0, // Set titleSpacing to 0
         title: Row(
           children: [
-            Icon(
-              Icons.favorite,
-              color: Color.fromARGB(255, 236, 146, 3),
-              size: 30,
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6.0),
+                gradient: LinearGradient(
+                  begin: Alignment(-0.95, 0.0),
+                  end: Alignment(1.0, 0.0),
+                  colors: [Color(0xff6157ff), Color(0xffee49fd)],
+                ),
+              ),
+              child: Icon(
+                Icons.favorite,
+                color: Colors.white,
+                size: 28,
+              ),
             ),
             SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  height: 10,
-                ),
+                // SizedBox(
+                //   height: 10,
+                // ),
                 Text(
                   'Favorite Song',
                   style: TextStyle(
@@ -48,14 +58,6 @@ class _FavoriteState extends State<Favorite> {
                   ),
                 ),
                 SizedBox(height: 2),
-                Text(
-                  "Let's Paly Your Favorited song...",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w200,
-                    color: Colors.white54,
-                    fontSize: 12,
-                  ),
-                ),
               ],
             )
           ],

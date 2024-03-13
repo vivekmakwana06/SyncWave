@@ -18,31 +18,41 @@ class _PlaylistState extends State<Playlist> {
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back,
-            color: Color.fromARGB(255, 236, 146, 3),
+            color: Color(0xff6157ff),
           ),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
-        titleSpacing: 0, 
+        titleSpacing: 0,
         title: Row(
           children: [
             // SizedBox(
             //   width: 10,
             //   height: 5,
             // ),
-            Icon(
-              Icons.playlist_add,
-              color: Color.fromARGB(255, 236, 146, 3),
-              size: 34,
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6.0),
+                gradient: LinearGradient(
+                  begin: Alignment(-0.95, 0.0),
+                  end: Alignment(1.0, 0.0),
+                  colors: [Color(0xff6157ff), Color(0xffee49fd)],
+                ),
+              ),
+              child: Icon(
+                Icons.playlist_add,
+                color: Colors.white,
+                size: 28,
+              ),
             ),
             SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  height: 10,
-                ),
+                // SizedBox(
+                //   height: 10,
+                // ),
                 Text(
                   'Playlist',
                   style: TextStyle(
@@ -52,14 +62,14 @@ class _PlaylistState extends State<Playlist> {
                   ),
                 ),
                 SizedBox(height: 2),
-                Text(
-                  'Play Your Listed Song...',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w200,
-                    color: Colors.white54,
-                    fontSize: 12,
-                  ),
-                ),
+                // Text(
+                //   'Play Your Listed Song...',
+                //   style: TextStyle(
+                //     fontWeight: FontWeight.w200,
+                //     color: Colors.white54,
+                //     fontSize: 12,
+                //   ),
+                // ),
               ],
             )
           ],

@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:async';
 
+import 'package:sync_music/theme/colors.dart';
+
 class SyncMusicDetailPage extends StatefulWidget {
   final String title;
   final String description;
@@ -62,9 +64,6 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
           isPlaying = event["isPlaying"];
         });
 
-        // Seek to the updated position
-        audioPlayer.seek(position);
-
         // Handle play/pause state
         if (isPlaying) {
           audioPlayer.resume();
@@ -73,6 +72,18 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
         }
       }
     });
+
+    void updateSyncDocument() {
+      final docSync = firestore.collection("sync").doc(widget.title);
+
+      // Apply time difference to adjust the position sent to Firestore
+      final adjustedPosition = position.inMilliseconds + timeDifference;
+
+      docSync.update({
+        'currentPosition': adjustedPosition,
+        'isPlaying': isPlaying,
+      });
+    }
 
     playMusic(widget.songUrl);
   }
@@ -168,13 +179,23 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
 
   getAppBar() {
     return AppBar(
-      backgroundColor: Colors.black,
+      leading: IconButton(
+        icon: Icon(
+          Icons.arrow_back,
+          color: Color(0xff6157ff),
+        ),
+        onPressed: () {
+          Navigator.pop(context); // Navigate back
+        },
+      ),
+      titleSpacing: 0,
+      backgroundColor: black,
       elevation: 0,
       actions: const [
         IconButton(
           icon: Icon(
             Icons.more_vert_sharp,
-            color: Colors.white,
+            color: white,
           ),
           onPressed: null,
         )
@@ -278,7 +299,7 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
             height: 10,
           ),
           Slider(
-            activeColor: Colors.blue,
+            activeColor: Color(0xff6157ff),
             value: position.inSeconds.toDouble(),
             max: duration.inSeconds.toDouble(),
             min: 0.0,
@@ -301,66 +322,7 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
               ],
             ),
           ),
-          const SizedBox(height: 25),
-          Padding(
-            padding: const EdgeInsets.only(left: 20, right: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: Icon(
-                    Icons.shuffle,
-                    color: Colors.white.withOpacity(0.8),
-                    size: 25,
-                  ),
-                  onPressed: null,
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.skip_previous,
-                    color: Colors.white.withOpacity(0.8),
-                    size: 25,
-                  ),
-                  onPressed: null,
-                ),
-                IconButton(
-                  iconSize: 50,
-                  icon: Container(
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.blue,
-                    ),
-                    child: Center(
-                      child: Icon(
-                        isPlaying ? Icons.pause : Icons.play_arrow,
-                        size: 28,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  onPressed: () async {
-                    // Handle play/pause logic here
-                  },
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.skip_next,
-                    color: Colors.white.withOpacity(0.8),
-                    size: 25,
-                  ),
-                  onPressed: null,
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.cached,
-                    color: Colors.white.withOpacity(0.8),
-                    size: 25,
-                  ),
-                  onPressed: null,
-                ),
-              ],
-            ),
-          ),
+          
         ],
       ),
     );

@@ -1,17 +1,21 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sync_music/AdminPanel/AdminPage.dart';
 import 'package:sync_music/screens/LoginRegisterPage.dart';
 import 'package:sync_music/screens/root_app.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
- 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await FlutterDownloader.initialize(
+    debug: true,
+  );
   await Firebase.initializeApp();
-  initPathProvider(); 
+  initPathProvider();
   runApp(
     MaterialApp(
       theme: ThemeData(
@@ -22,8 +26,6 @@ void main() async {
     ),
   );
 }
-
-
 
 void initPathProvider() async {
   await getApplicationDocumentsDirectory();
@@ -49,7 +51,7 @@ class MyApp extends StatelessWidget {
             return AuthGate();
           } else if (snapshot.hasData && snapshot.data != null) {
             User user = snapshot.data!;
-            if (AuthService.isAdminUser(user.email!, "dummy_password")) {
+            if (AuthService.isAdminUser(user.email!, "vivek_makwana_")) {
               return AdminDashboard();
             } else {
               return RootApp(userEmail: user.email!);
@@ -85,7 +87,6 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _animation;
 
   @override
   void initState() {
@@ -93,10 +94,6 @@ class _SplashScreenState extends State<SplashScreen>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
-    );
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
     );
     _controller.forward();
     navigateToHome();
@@ -143,7 +140,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1a1b1f),
+      backgroundColor: Color(0xFF221e3b),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -152,22 +149,38 @@ class _SplashScreenState extends State<SplashScreen>
             SizedBox(
               height: 400,
               width: 400,
-              child: Image.asset('assets/logo1.png'),
+              child: Image.asset('assets/sync.png'),
             ),
-            TypewriterAnimatedTextKit(
-              onTap: () {
-                print("Tap Event");
+            ShaderMask(
+              shaderCallback: (Rect bounds) {
+                return LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xff6157ff), Color(0xffee49fd)],
+                ).createShader(bounds);
               },
-              text: ["SyncWave"],
-              textStyle: GoogleFonts.ubuntu(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ).copyWith(fontSize: 30),
-              speed: const Duration(milliseconds: 100),
-              totalRepeatCount: 1,
-              displayFullTextOnTap: true,
-              stopPauseOnTap: true,
+              child: ColorizeAnimatedTextKit(
+                onTap: () {
+                  print("Tap Event");
+                },
+                colors: [
+                  Colors.purple,
+                  Colors.blue,
+                  Colors.yellow,
+                  Colors.red,
+                ],
+                text: ["SyncWave"],
+                textStyle: GoogleFonts.ubuntu(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ).copyWith(fontSize: 30),
+                speed: const Duration(milliseconds: 100),
+                totalRepeatCount: 10,
+                pause: const Duration(milliseconds: 1),
+                displayFullTextOnTap: true,
+                stopPauseOnTap: true,
+              ),
             ),
           ],
         ),

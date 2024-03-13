@@ -1,9 +1,8 @@
-// Import necessary packages
+
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:sync_music/SyncPlayerLibrary/SongLibraryPlayingpage.dart';
+import 'package:sync_music/screens/SongLibraryPlayingpage.dart';
 
 class DownloadedSong extends StatefulWidget {
   const DownloadedSong({Key? key}) : super(key: key);
@@ -40,8 +39,14 @@ class _DownloadedSongState extends State<DownloadedSong> {
       context: context,
       builder: (BuildContext buildContext) {
         return AlertDialog(
-          title: Text('Confirm Deletion'),
-          content: Text('Are you sure you want to delete $musicName?'),
+          title: Text(
+            'Confirm Deletion',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            'Are you want to sure to delete .... $musicName?',
+            style: TextStyle(fontWeight: FontWeight.w300, fontSize: 17),
+          ),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(buildContext).pop(false),
@@ -84,7 +89,7 @@ class _DownloadedSongState extends State<DownloadedSong> {
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back,
-            color: Color.fromARGB(255, 236, 146, 3),
+            color: Color(0xff6157ff),
           ),
           onPressed: () {
             Navigator.pop(context); // Navigate back
@@ -93,18 +98,28 @@ class _DownloadedSongState extends State<DownloadedSong> {
         titleSpacing: 0,
         title: Row(
           children: [
-            Icon(
-              Icons.download,
-              color: Color.fromARGB(255, 236, 146, 3),
-              size: 34,
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6.0),
+                gradient: LinearGradient(
+                  begin: Alignment(-0.95, 0.0),
+                  end: Alignment(1.0, 0.0),
+                  colors: [Color(0xff6157ff), Color(0xffee49fd)],
+                ),
+              ),
+              child: Icon(
+                Icons.download,
+                color: Colors.white,
+                size: 28,
+              ),
             ),
             SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  height: 10,
-                ),
+                // SizedBox(
+                //   height: 10,
+                // ),
                 Text(
                   'Downloaded Songs',
                   style: TextStyle(
@@ -114,14 +129,6 @@ class _DownloadedSongState extends State<DownloadedSong> {
                   ),
                 ),
                 SizedBox(height: 2),
-                Text(
-                  'Offline Play Your Downloaded Songs...',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w200,
-                    color: Colors.white54,
-                    fontSize: 12,
-                  ),
-                ),
               ],
             )
           ],
@@ -154,22 +161,28 @@ class _DownloadedSongState extends State<DownloadedSong> {
                   },
                 ),
                 onTap: () {
-                  // Add code to navigate to the MusicPlayPage with the selected song details
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MusicPlayPage(
-                        musicName: song['musicName'],
-                        code: song['code'],
-                        downloadUrl: song['downloadUrl'],
-                        documentId: song['documentId'],
-                      ),
-                    ),
-                  );
+                  // Add code to play the downloaded song
+                  playDownloadedSong(song);
                 },
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+
+  // Function to play the downloaded song
+  void playDownloadedSong(Map<String, dynamic> song) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MusicPlayPage(
+          musicName: song['musicName'],
+          image: song['code'],
+          downloadUrl: song[
+              'localFilePath'], // Pass local file path for offline playback
+          documentId: song['documentId'],
         ),
       ),
     );

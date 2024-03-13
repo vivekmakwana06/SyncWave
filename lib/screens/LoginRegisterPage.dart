@@ -1,8 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sync_music/AdminPanel/AdminPage.dart';
 import 'package:sync_music/main.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:animated_text_kit/animated_text_kit.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({Key? key}) : super(key: key);
@@ -73,7 +76,7 @@ class _AuthGateState extends State<AuthGate> {
   String? validateConfirmPassword(String? value) {
     if (!isSignIn) {
       // Only validate during registration
-      if (value == null || value.isEmpty) {
+      if (isFormInteracted && confirmPasswordController.text.isEmpty) {
         return 'Please enter confirm password';
       }
       if (isFormInteracted &&
@@ -109,19 +112,19 @@ class _AuthGateState extends State<AuthGate> {
       // Validation check before submission
       if (validateEmail(emailController.text) != null) {
         // Display an error message for email validation
-        // ScaffoldMessenger.of(currentContext).showSnackBar(
-        //   SnackBar(
-        //     content: Text(
-        //       'Please enter a valid email address.',
-        //       style: GoogleFonts.kanit(
-        //         fontWeight: FontWeight.bold,
-        //         color: Color.fromARGB(255, 236, 146, 3),
-        //         fontSize: 15,
-        //       ),
-        //     ),
-        //     duration: Duration(seconds: 2),
-        //   ),
-        // );
+        ScaffoldMessenger.of(currentContext).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Please enter a valid email address.',
+              style: GoogleFonts.kanit(
+                fontWeight: FontWeight.bold,
+                color: Color.fromARGB(255, 236, 146, 3),
+                fontSize: 15,
+              ),
+            ),
+            duration: Duration(seconds: 2),
+          ),
+        );
         return;
       }
 
@@ -224,10 +227,22 @@ class _AuthGateState extends State<AuthGate> {
         }
       } else {
         // User does not exist, proceed with registration
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        UserCredential userCredential =
+            await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: emailController.text,
           password: passwordController.text,
         );
+
+        // Store additional user data in Firestore
+        await FirebaseFirestore.instance
+            .collection('Authentication')
+            .doc(userCredential.user!.uid)
+            .set({
+          'email': emailController.text,
+          'password': passwordController.text,
+          'confirm_pass': confirmPasswordController.text
+          // Add more fields as needed
+        });
 
         // Registration success message
         ScaffoldMessenger.of(currentContext).showSnackBar(
@@ -271,6 +286,9 @@ class _AuthGateState extends State<AuthGate> {
         errorMessage = 'No user found with this email.';
       } else if (error.code == 'wrong-password') {
         errorMessage = 'Incorrect password.';
+      } else if (error.code == 'email-already-in-use') {
+        errorMessage =
+            'Email is already registered. Please register with a different email.';
       }
 
       // Display error message to the user
@@ -289,7 +307,7 @@ class _AuthGateState extends State<AuthGate> {
         ),
       );
 
-      print("Authentication failed: $error");
+      print("FirebaseAuthException: ${error.code}, ${error.message}");
     } catch (error) {
       // Handle other errors
       // Display a generic error message to the user
@@ -337,25 +355,50 @@ class _AuthGateState extends State<AuthGate> {
       obscureText: isPassword ? !showPassword : false,
       decoration: InputDecoration(
         hintText: hintText,
-        fillColor: Colors.white,
         filled: true,
-        prefixIcon: Icon(icon, color: Colors.black),
+        fillColor: Colors.transparent,
+        prefixIcon: Icon(
+          icon,
+          color: Color.fromRGBO(111, 117, 138, 1),
+        ),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
                   showPassword ? Icons.visibility : Icons.visibility_off,
                 ),
-                color: Colors.black,
+                color: Color.fromRGBO(111, 117, 138, 1),
                 onPressed: onTogglePassword,
               )
             : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide.none,
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(
+            color: Colors.white,
+          ),
+        ),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(
+            color: Colors.white,
+          ),
+        ),
+        errorBorder: UnderlineInputBorder(
+          borderSide: BorderSide(
+            color: Colors.red,
+          ),
+        ),
+        focusedErrorBorder: UnderlineInputBorder(
+          borderSide: BorderSide(
+            color: Colors.red,
+          ),
         ),
         errorText: validator != null ? validator(controller.text) : null,
+        // Apply text color here
+        hintStyle: TextStyle(
+          color: Color.fromRGBO(111, 117, 138, 1),
+        ),
       ),
-      style: TextStyle(color: Colors.black),
+      style: TextStyle(
+        color: Color.fromRGBO(248, 248, 251, 1),
+      ),
     );
   }
 
@@ -364,7 +407,7 @@ class _AuthGateState extends State<AuthGate> {
       children: [
         Checkbox(
           checkColor: Colors.white,
-          activeColor: Color.fromARGB(255, 236, 146, 3),
+          activeColor: Colors.green,
           value: agreedToTerms,
           onChanged: (value) {
             setState(() {
@@ -382,115 +425,166 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
+    String topMessage = isSignIn ? 'Sign In' : 'Register';
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color(0xFF221e3b),
       body: SingleChildScrollView(
         child: Container(
-          padding: const EdgeInsets.all(22),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          height: MediaQuery.of(context).size.height,
+          width: MediaQuery.of(context).size.width,
+          child: Stack(
             children: [
-              const SizedBox(height: 30),
-              Image.asset(
-                'assets/login.png',
-                height: 300,
-                width: 300,
-              ),
-              buildTextField(
-                controller: emailController,
-                hintText: 'Email',
-                icon: Icons.email,
-                validator: validateEmail,
-                showPassword: false,
-                onTogglePassword: () {},
-              ),
-              const SizedBox(height: 25),
-              buildTextField(
-                controller: passwordController,
-                hintText: 'Password',
-                icon: Icons.lock,
-                isPassword: true,
-                validator: validatePassword,
-                showPassword: showPassword,
-                onTogglePassword: () {
-                  setState(() {
-                    showPassword = !showPassword;
-                  });
-                },
-              ),
-              if (!isSignIn) const SizedBox(height: 25),
-              if (!isSignIn)
-                buildTextField(
-                  controller: confirmPasswordController,
-                  hintText: 'Confirm Password',
-                  icon: Icons.lock,
-                  isPassword: true,
-                  validator: validateConfirmPassword,
-                  showPassword: showConfirmPassword,
-                  onTogglePassword: () {
-                    setState(() {
-                      showConfirmPassword = !showConfirmPassword;
-                    });
-                  },
+              // Image widget moved to the bottom of the stack
+              Container(
+                height: double.infinity,
+                width: double.infinity,
+                child: Image.network(
+                  'https://images.unsplash.com/photo-1582220107107-590dc8b0fad3?q=80&w=1936&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                  fit: BoxFit.fill,
                 ),
-              const SizedBox(height: 20),
-              if (!isSignIn) buildAgreementCheckbox(),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _submitForm,
-                style: ElevatedButton.styleFrom(
-                  primary: Color.fromARGB(255, 236, 146, 3),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20.0),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: isLoading
-                      ? CircularProgressIndicator(
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                        )
-                      : Text(
-                          isSignIn ? 'Sign In' : 'Register',
-                          style: TextStyle(fontSize: 18, color: Colors.white),
+              ),
+              // Text fields and button overlaying the image
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Welcome To,',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
                         ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextButton(
-                onPressed: switchAuthMode,
-                style: TextButton.styleFrom(
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Column(
-                  children: [
-                    Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            isSignIn
-                                ? "Don't have an account?"
-                                : 'Already have an account?',
-                            style: TextStyle(
-                              color: Colors.white,
-                            ),
-                          ),
-                          SizedBox(
-                            width: 10,
-                          ),
-                          Text(
-                            isSignIn ? 'Register here.' : 'Sign in here.',
-                            style: TextStyle(
-                              color: Colors.red,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ],
                       ),
-                    ),
-                  ],
+                      Text(
+                        topMessage,
+                        style: TextStyle(
+                          color: Color(0xff6157ff),
+                          fontSize: 35,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 50),
+                      buildTextField(
+                        controller: emailController,
+                        hintText: 'Email',
+                        icon: Icons.email,
+                        validator: validateEmail,
+                        showPassword: false,
+                        onTogglePassword: () {},
+                      ),
+                      SizedBox(height: 25),
+                      buildTextField(
+                        controller: passwordController,
+                        hintText: 'Password',
+                        icon: Icons.lock,
+                        isPassword: true,
+                        validator: validatePassword,
+                        showPassword: showPassword,
+                        onTogglePassword: () {
+                          setState(() {
+                            showPassword = !showPassword;
+                          });
+                        },
+                      ),
+                      if (!isSignIn) SizedBox(height: 25),
+                      if (!isSignIn)
+                        buildTextField(
+                          controller: confirmPasswordController,
+                          hintText: 'Confirm Password',
+                          icon: Icons.lock,
+                          isPassword: true,
+                          validator: validateConfirmPassword,
+                          showPassword: showConfirmPassword,
+                          onTogglePassword: () {
+                            setState(() {
+                              showConfirmPassword = !showConfirmPassword;
+                            });
+                          },
+                        ),
+                      SizedBox(height: 20),
+                      if (!isSignIn) buildAgreementCheckbox(),
+                      SizedBox(height: 20),
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6.0),
+                          gradient: LinearGradient(
+                            begin: Alignment(-0.95, 0.0),
+                            end: Alignment(1.0, 0.0),
+                            colors: [Color(0xff6157ff), Color(0xffee49fd)],
+                          ),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: _submitForm,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: isLoading
+                                ? CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  )
+                                : Text(
+                                    isSignIn ? 'Sign In' : 'Register',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      TextButton(
+                        onPressed: switchAuthMode,
+                        style: TextButton.styleFrom(
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Column(
+                          children: [
+                            Center(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    isSignIn
+                                        ? "Don't have an account?"
+                                        : 'Already have an account?',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    isSignIn
+                                        ? 'Register here.'
+                                        : 'Sign in here.',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
