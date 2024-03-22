@@ -120,7 +120,7 @@ class _homePageState extends State<homePage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => SyncMusicCollection(),
+                    builder: (context) => SyncCode(),
                   ),
                 );
               },
@@ -129,8 +129,7 @@ class _homePageState extends State<homePage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10.0),
                 ),
-                elevation:
-                    20, // Adjust the elevation to increase the button's size
+                elevation: 20,
                 padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
               ),
               child: Text(
@@ -357,6 +356,7 @@ class _homePageState extends State<homePage> {
 
       MusicDetailPage(
         result: result.toString(),
+        isCreatingHost: true,
       );
     } else {
       print("User email is null");
@@ -368,7 +368,7 @@ class _homePageState extends State<homePage> {
         builder: (context) {
           return AlertDialog(
             title: Text(
-              "Music Sync",
+              "Host Code",
               style: TextStyle(color: Color(0xff6157ff), fontSize: 24),
             ),
             content: Container(
@@ -405,7 +405,7 @@ class _homePageState extends State<homePage> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => MusicPage(
+                            builder: (context) => Collection(
                               // userEmail: widget.userEmail,
                               result: result.toString(),
                               // party_status: true,

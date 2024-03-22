@@ -8,12 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path/path.dart';
 import 'package:sync_music/screens/LoginRegisterPage.dart';
-import 'package:sync_music/screens/MusicPage.dart';
-import 'package:sync_music/screens/PlaylistPage.dart';
-import 'package:sync_music/screens/downloadSong.dart';
 import 'package:sync_music/screens/favorite.dart';
-
-// enum Availability { loading, available, unavailable }
 
 class Upload extends StatefulWidget {
   const Upload({Key? key}) : super(key: key);
@@ -140,24 +135,29 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
     });
   }
 
-  void finalUpload(BuildContext context) async {
+  void finalUpload(
+      BuildContext context, String userId, String userEmail) async {
     if (songResult != null) {
       try {
         File songFile = File(songResult!.path!);
 
         var data = {
+          "user_email": userEmail, // Add the user's email to the data
           "song_name": basename(songFile.path),
           "artist_name": artistName.text,
           "song_url": songDownloadUrl.toString(),
           "image_url": imageDownloadUrl.toString(),
         };
 
-        await FirebaseFirestore.instance
+        // Generate a unique document ID
+        var docRef = await FirebaseFirestore.instance
+            .collection("users")
+            .doc(userId)
             .collection("CustomCollection")
-            .doc()
-            .set(data);
+            .add(data);
 
-        // Reset the information after successful upload
+        print("Document ID: ${docRef.id}");
+
         setState(() {
           songName.text = "";
           artistName.text = "";
@@ -166,10 +166,7 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
           songResult = null;
         });
       } catch (error) {
-        // Handle upload errors
         print("Upload error: $error");
-
-        // Show an error message
         showDialog(
           context: context,
           builder: (BuildContext context) {
@@ -190,7 +187,6 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
         );
       }
     } else {
-      // Show an error message if no song is selected
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -303,7 +299,7 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
                           ),
                         ),
                       ),
-                      SizedBox(height: 50),
+                      SizedBox(height: 80),
                       Divider(thickness: .4),
                       Padding(
                         padding: const EdgeInsets.all(15.0),
@@ -343,122 +339,8 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
                         ),
                       ),
                       Divider(thickness: .4),
-                      Padding(
-                        padding: const EdgeInsets.all(15.0),
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => Playlist()),
-                            );
-                          },
-                          child: Container(
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: 10,
-                                ),
-                                Icon(
-                                  Icons.playlist_add,
-                                  size: 18,
-                                  color: Colors.white,
-                                ),
-                                SizedBox(
-                                  width: 5,
-                                ),
-                                Text(
-                                  'Playlist Song',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFFFFFFFF),
-                                    fontSize: 18,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Divider(thickness: .4),
-                      Padding(
-                        padding: const EdgeInsets.all(15.0),
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => DownloadedSong()),
-                            );
-                          },
-                          child: Container(
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: 10,
-                                ),
-                                Icon(
-                                  Icons.download,
-                                  size: 18,
-                                  color: Colors.white,
-                                ),
-                                SizedBox(
-                                  width: 5,
-                                ),
-                                Text(
-                                  'Download Song',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFFFFFFFF),
-                                    fontSize: 18,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Divider(thickness: .4),
-                      Padding(
-                        padding: const EdgeInsets.all(15.0),
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => MusicPage()),
-                            );
-                          },
-                          child: Container(
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: 10,
-                                ),
-                                Icon(
-                                  Icons.download,
-                                  size: 18,
-                                  color: Colors.white,
-                                ),
-                                SizedBox(
-                                  width: 5,
-                                ),
-                                Text(
-                                  'Custom Collection',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFFFFFFFF),
-                                    fontSize: 18,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Divider(thickness: .4),
                       SizedBox(
-                        height: 30,
+                        height: 110,
                       ),
                       ElevatedButton(
                         onPressed: () async {
@@ -636,7 +518,17 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
                         ),
                       ),
                       child: ElevatedButton(
-                        onPressed: () => finalUpload(context),
+                        onPressed: () async {
+                          String? userId =
+                              FirebaseAuth.instance.currentUser?.uid;
+                          if (userId != null) {
+                         finalUpload(context, userId, _userName);
+
+                          } else {
+                            // Handle the case where userId is null (e.g., user not authenticated)
+                            print("User ID is null");
+                          }
+                        },
                         child: const Text(
                           "Upload",
                           style: TextStyle(

@@ -1,17 +1,20 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:sync_music/screens/sync_music_player.dart';
 import 'package:sync_music/theme/colors.dart';
 
-class SyncMusicCollection extends StatefulWidget {
-  const SyncMusicCollection({Key? key}) : super(key: key);
+class SyncCode extends StatefulWidget {
+  const SyncCode({Key? key}) : super(key: key);
 
   @override
-  State<SyncMusicCollection> createState() => _SyncMusicCollectionState();
+  State<SyncCode> createState() => _SyncCodeState();
 }
 
-class _SyncMusicCollectionState extends State<SyncMusicCollection> {
+class _SyncCodeState extends State<SyncCode> {
   TextEditingController syncController = TextEditingController();
+  bool showErrorMessage = false;
+  bool showEmptyFieldError = false;
 
   @override
   Widget build(BuildContext context) {
@@ -32,10 +35,6 @@ class _SyncMusicCollectionState extends State<SyncMusicCollection> {
         titleSpacing: 0,
         title: Row(
           children: [
-            // SizedBox(
-            //   width: 10,
-            //   height: 5,
-            // ),
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(6.0),
@@ -142,6 +141,22 @@ class _SyncMusicCollectionState extends State<SyncMusicCollection> {
                 textInputAction: TextInputAction.done,
               ),
             ),
+            if (showEmptyFieldError)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Text(
+                  'Sync code cannot be empty',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            if (showErrorMessage)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Text(
+                  'Wrong host code',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(6.0),
@@ -161,20 +176,34 @@ class _SyncMusicCollectionState extends State<SyncMusicCollection> {
                   elevation: 20,
                 ),
                 onPressed: () async {
-                  String syncCode = syncController.text ?? "";
-                  if (syncCode.isNotEmpty) {
-                    Navigator.push(
-                      context,
-                      PageTransition(
-                        alignment: Alignment.bottomCenter,
-                        child: SyncMusicPlayer(docId: syncCode),
-                        type: PageTransitionType.scale,
-                      ),
-                    );
+                  String hostCode = syncController.text ?? "";
+                  if (hostCode.isEmpty) {
+                    setState(() {
+                      showEmptyFieldError = true;
+                      showErrorMessage = false;
+                    });
                   } else {
-                    // Handle the case where the sync code is empty
-                    // Show an error message or take appropriate action
-                    print("Sync code is empty");
+                    // Check if the host code is correct
+                    bool isValidCode = await checkHostCodeValidity(hostCode);
+                    if (isValidCode) {
+                      setState(() {
+                        showEmptyFieldError = false;
+                        showErrorMessage = false;
+                      });
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          alignment: Alignment.bottomCenter,
+                          child: SyncMusicPlayer(docId: hostCode),
+                          type: PageTransitionType.scale,
+                        ),
+                      );
+                    } else {
+                      setState(() {
+                        showEmptyFieldError = false;
+                        showErrorMessage = true;
+                      });
+                    }
                   }
                 },
                 child: const Text(
@@ -182,10 +211,22 @@ class _SyncMusicCollectionState extends State<SyncMusicCollection> {
                   style: TextStyle(color: Colors.white),
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<bool> checkHostCodeValidity(String hostCode) async {
+    // Query Firestore to check if the host code exists
+    QuerySnapshot<Map<String, dynamic>> querySnapshot = await FirebaseFirestore
+        .instance
+        .collection('party')
+        .where('party_code', isEqualTo: hostCode)
+        .limit(1)
+        .get();
+
+    return querySnapshot.docs.isNotEmpty;
   }
 }

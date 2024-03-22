@@ -16,6 +16,8 @@ class MusicDetailPage extends StatefulWidget {
   final bool? partyStatus;
   final String? result;
   final bool? syncMusicEnabled;
+
+  final bool isCreatingHost;
   const MusicDetailPage({
     Key? key,
     this.title,
@@ -25,6 +27,7 @@ class MusicDetailPage extends StatefulWidget {
     this.color,
     this.img,
     this.songUrl,
+    required this.isCreatingHost,
     this.syncMusicEnabled,
   }) : super(key: key);
 
@@ -81,7 +84,7 @@ class _MusicDetailPageState extends State<MusicDetailPage>
     playMusic(widget.songUrl!);
   }
 
-  void playMusic(String url) {
+  void playMusic(String url) async {
     final audio = Audio.network(
       url,
       metas: Metas(
@@ -118,6 +121,19 @@ class _MusicDetailPageState extends State<MusicDetailPage>
         isPlaying = event;
       });
     });
+
+    if (widget.isCreatingHost ?? false) {
+      syncMusic = true;
+      await firestore.collection("sync").doc(widget.result.toString()).set({
+        'musicName': widget.title,
+        'artistName': widget.description,
+        'songUrl': widget.songUrl,
+        'imgUrl': widget.img,
+        'currentPosition': 0, // Reset currentPosition when playing new song
+        'isPlaying': true, // Start playing the new song
+      });
+      openDialog("Sync music successfully");
+    }
   }
 
   Future<String?> getUserName() async {
@@ -447,8 +463,7 @@ class _MusicDetailPageState extends State<MusicDetailPage>
           ),
           GestureDetector(
             onTap: () async {
-              if (widget.syncMusicEnabled ?? false) {
-                // Handle nullable bool
+              if (widget.isCreatingHost ?? false) {
                 syncMusic = true;
                 await firestore
                     .collection("sync")
@@ -460,35 +475,13 @@ class _MusicDetailPageState extends State<MusicDetailPage>
                   'imgUrl': widget.img,
                 });
                 openDialog("Sync music successfully");
-              } else {
-                // Optionally display a message indicating sync music is not enabled
-              }
+              } else {}
             },
             child: Padding(
               padding: const EdgeInsets.only(top: 30),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.sync,
-                    color: (widget.syncMusicEnabled ?? false)
-                        ? Color(0xffee49fd)
-                        : Colors.grey, // Handle nullable bool
-                    size: 25,
-                  ),
-                  SizedBox(
-                    width: 10,
-                  ),
-                  Text(
-                    (widget.syncMusicEnabled ?? false)
-                        ? "Sync Music"
-                        : "Sync Music Disabled", // Handle nullable bool
-                    style: TextStyle(
-                        color: (widget.syncMusicEnabled ?? false)
-                            ? Color(0xffee49fd)
-                            : Colors.grey,
-                        fontSize: 25),
-                  ),
                 ],
               ),
             ),

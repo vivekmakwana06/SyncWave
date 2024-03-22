@@ -1,24 +1,28 @@
+import 'package:flutter/material.dart';
+import 'package:sync_music/screens/music_detail_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:page_transition/page_transition.dart';
-import 'package:sync_music/screens/music_detail_page.dart';
 import '../theme/colors.dart';
 
-class MusicPage extends StatefulWidget {
+class Collection extends StatefulWidget {
   final String? result;
   final bool? isCreatingHost;
   final bool? party_status;
-  const MusicPage(
-      {Key? key, this.result, this.party_status, this.isCreatingHost})
+  final String? docId;
+  const Collection(
+      {Key? key,
+      this.result,
+      this.party_status,
+      this.isCreatingHost,
+      this.docId})
       : super(key: key);
 
   @override
   _MusicPageState createState() => _MusicPageState();
 }
 
-class _MusicPageState extends State<MusicPage>
+class _MusicPageState extends State<Collection>
     with SingleTickerProviderStateMixin {
   int activeMenu1 = 0;
   int activeMenu2 = 0;
@@ -26,12 +30,15 @@ class _MusicPageState extends State<MusicPage>
   late String _userName;
   int? result;
   late TabController _tabController;
+  late String? userId;
 
   @override
   void initState() {
     super.initState();
     _tabController =
         TabController(length: 1, vsync: this); // Change length to 1
+    userId = FirebaseAuth
+        .instance.currentUser?.uid; // Assign current user's uid to userId
     _userName = '';
     _loadUserName();
   }
@@ -73,12 +80,24 @@ class _MusicPageState extends State<MusicPage>
                 Navigator.of(context).pop(); // Close the dialog
                 Navigator.pop(context); // Navigate back to the previous page
 
-                // Update party_status to false
+                // Update party_status to false and hostExited to true
                 await FirebaseFirestore.instance
                     .collection("party")
                     .doc(widget
                         .result!) // Assuming widget.result contains the party document ID
-                    .update({'party_status': false});
+                    .update({
+                  'party_status': false,
+                  'hostExited': true,
+                });
+
+                // Notify all users that the host has exited
+                await FirebaseFirestore.instance
+                    .collection("sync")
+                    .doc(widget
+                        .docId) // Assuming widget.docId contains the sync document ID
+                    .update({
+                  'hostExited': true,
+                });
               },
               child: Text("OK"),
             ),
@@ -90,103 +109,104 @@ class _MusicPageState extends State<MusicPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFF1a1b1f),
-      appBar: AppBar(
-        backgroundColor: Color(0xFF1a1b1f),
-        elevation: 0,
-        leading: widget.isCreatingHost ?? false
-            ? null
-            : IconButton(
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: Color(0xff6157ff),
-                ),
-                onPressed: () {
-                  Navigator.pop(context); // Navigate back
-                },
+    return WillPopScope(
+      onWillPop: () async {
+        exitHost(); // Call exitHost() when the back button is pressed
+        return true; // Return true to allow the back navigation
+      },
+      child: Scaffold(
+        backgroundColor: Color(0xFF221e3b),
+        appBar: AppBar(
+          backgroundColor: Color(0xFF221e3b),
+          elevation: 0,
+          titleSpacing: 0,
+          title: Row(
+            children: [
+              SizedBox(
+                width: 25,
+                height: 5,
               ),
-
-        titleSpacing: 0, // Set titleSpacing to 0
-        title: Row(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6.0),
-                gradient: LinearGradient(
-                  begin: Alignment(-0.95, 0.0),
-                  end: Alignment(1.0, 0.0),
-                  colors: [Color(0xff6157ff), Color(0xffee49fd)],
-                ),
-              ),
-              child: Icon(
-                Icons.collections,
-                color: Colors.white,
-                size: 28,
-              ),
-            ),
-            SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Collection',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFFFFFFF),
-                    fontSize: 20,
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6.0),
+                  gradient: LinearGradient(
+                    begin: Alignment(-0.95, 0.0),
+                    end: Alignment(1.0, 0.0),
+                    colors: [Color(0xff6157ff), Color(0xffee49fd)],
                   ),
                 ),
-                SizedBox(height: 2),
-              ],
-            )
-          ],
-        ),
-      ),
-      floatingActionButton: widget.party_status != null && widget.party_status!
-          ? Container(
-              height: 70,
-              width: 70,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6.0),
-                gradient: LinearGradient(
-                  begin: Alignment(-0.95, 0.0),
-                  end: Alignment(1.0, 0.0),
-                  colors: [Color(0xff6157ff), Color(0xffee49fd)],
+                child: Icon(
+                  Icons.collections,
+                  color: Colors.white,
+                  size: 28,
                 ),
               ),
-              child: FloatingActionButton(
-                onPressed: () {
-                  exitHost();
-                },
-                backgroundColor: Colors.transparent,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 15, right: 10),
-                  child: Text(
-                    'Exist Host',
+              SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Collection',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Color.fromARGB(255, 245, 245, 245),
-                      fontSize: 18,
+                      color: Color(0xFFFFFFFF),
+                      fontSize: 20,
                     ),
                   ),
-                ),
-              ),
-            )
-          : null,
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // TrendingSong(),
-          CustomCollection(0),
-        ],
+                  SizedBox(height: 2),
+                ],
+              )
+            ],
+          ),
+        ),
+        floatingActionButton:
+            widget.party_status != null && widget.party_status!
+                ? Container(
+                    height: 70,
+                    width: 70,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6.0),
+                      gradient: LinearGradient(
+                        begin: Alignment(-0.95, 0.0),
+                        end: Alignment(1.0, 0.0),
+                        colors: [Color(0xff6157ff), Color(0xffee49fd)],
+                      ),
+                    ),
+                    child: FloatingActionButton(
+                      onPressed: () {
+                        exitHost();
+                      },
+                      backgroundColor: Colors.transparent,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 15, right: 10),
+                        child: Text(
+                          'Exist Host',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color.fromARGB(255, 245, 245, 245),
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : null,
+        body: RefreshIndicator(
+          onRefresh: () async {
+            setState(() {});
+          },
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              CustomCollection(0, _userName, userId),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  //
-
-  Widget CustomCollection(int tabIndex) {
+  Widget CustomCollection(int tabIndex, String userEmail, String? userId) {
     return StatefulBuilder(
       builder: (context, setState) {
         return SingleChildScrollView(
@@ -195,97 +215,38 @@ class _MusicPageState extends State<MusicPage>
             child: Column(
               children: [
                 // Song types (GridView)
-                FutureBuilder<List<String>>(
-                  future: getSongTypesFromFirestore(tabIndex),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xff6157ff),
-                        ),
-                      );
-                    } else if (snapshot.hasError) {
-                      return Center(
-                        child: Text("Error: ${snapshot.error}"),
-                      );
-                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return Center(
-                        child: Text("No song types available"),
-                      );
-                    } else {
-                      List<String> songTypes = snapshot.data!;
-                      return GridView.builder(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16.0,
-                          mainAxisSpacing: 16.0,
-                        ),
-                        itemCount: songTypes.length,
-                        shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        itemBuilder: (context, index) {
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                if (songTypes[index] == activeMenu1) {
-                                  activeMenu1 = index;
-                                } else {
-                                  // activeMenu2 = index;
-                                }
-                              });
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                color: activeMenu1 == index
-                                    ? null // Remove the color property
-                                    : Colors.transparent,
-                                border: Border.all(
-                                  // color: primary,
-                                  width: 2.0,
-                                ),
-                                gradient: activeMenu1 ==
-                                        index // Set the gradient conditionally
-                                    ? LinearGradient(
-                                        begin: Alignment(-0.95, 0.0),
-                                        end: Alignment(1.0, 0.0),
-                                        colors: [
-                                          Color(0xff6157ff),
-                                          Color(0xffee49fd)
-                                        ],
-                                      )
-                                    : null,
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Center(
-                                  child: Text(
-                                    songTypes[index],
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: activeMenu1 == index
-                                          ? Colors.white
-                                          : grey,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    }
-                  },
+                Visibility(
+                  visible: widget.isCreatingHost == true,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6.0),
+                      gradient: LinearGradient(
+                        begin: Alignment(-0.95, 0.0),
+                        end: Alignment(1.0, 0.0),
+                        colors: [Color(0xff6157ff), Color(0xffee49fd)],
+                      ),
+                    ),
+                    child: Text(
+                      'Host: ${widget.result}', // Display the result here
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFFFFFFF),
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
                 ),
+
                 SizedBox(
                   height: 20,
                 ),
 
-                FutureBuilder<QuerySnapshot>(
-                  future: FirebaseFirestore.instance
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection("users")
+                      .doc(userId)
                       .collection("CustomCollection")
-                      .get(),
+                      .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return Center(
@@ -300,7 +261,16 @@ class _MusicPageState extends State<MusicPage>
                     } else if (!snapshot.hasData ||
                         snapshot.data!.docs.isEmpty) {
                       return Center(
-                        child: Text("No songs available"),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "No songs available",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 25),
+                            ),
+                          ],
+                        ),
                       );
                     } else {
                       return Padding(
@@ -340,6 +310,8 @@ class _MusicPageState extends State<MusicPage>
                                             .data!.docs[i]['song_url']
                                             .toString(),
                                         result: widget.result,
+                                        isCreatingHost:
+                                            widget.isCreatingHost ?? false,
                                       ),
                                       type: PageTransitionType.scale,
                                     ),
@@ -359,8 +331,22 @@ class _MusicPageState extends State<MusicPage>
                                         color: Color(0xff6157ff),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                            left: 115, bottom: 150),
+                                        child: IconButton(
+                                          icon: Icon(Icons.delete),
+                                          color: Color.fromARGB(255, 216, 1, 1),
+                                          iconSize: 28,
+                                          onPressed: () {
+                                            // Handle delete functionality here
+                                            deleteSong(context,
+                                                snapshot.data!.docs[i].id);
+                                          },
+                                        ),
+                                      ),
                                     ),
-                                    SizedBox(height: 10),
+                                    SizedBox(height: 5),
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 8.0),
@@ -381,20 +367,9 @@ class _MusicPageState extends State<MusicPage>
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
-                                          IconButton(
-                                            icon: Icon(Icons.delete),
-                                            color: Color.fromARGB(
-                                                255, 255, 255, 255),
-                                            onPressed: () {
-                                              // Handle delete functionality here
-                                              deleteSong(context,
-                                                  snapshot.data!.docs[i].id);
-                                            },
-                                          ),
                                         ],
                                       ),
                                     ),
-                                    SizedBox(height: 5),
                                     SizedBox(
                                       width: 180,
                                       child: Text(
@@ -429,204 +404,13 @@ class _MusicPageState extends State<MusicPage>
     );
   }
 
-  Future<List<String>> getSongTypesFromFirestore(int index) async {
-    // Fetch song types from Firestore based on the index
-    try {
-      DocumentSnapshot<Map<String, dynamic>> querySnapshot =
-          await FirebaseFirestore.instance
-              .collection("song_types")
-              .doc(index == 0 ? "type1" : "")
-              .get();
-      List<String> songTypes =
-          List<String>.from(querySnapshot.data()!['types']);
-      return songTypes;
-    } catch (error) {
-      print("Error fetching song types: $error");
-      return [];
-    }
-  }
-
-  Widget getSongTypeListView(List<String> songTypes, int activeMenu) {
-    final int itemsPerLine = 2;
-
-    return SizedBox(
-      child: Wrap(
-        alignment: WrapAlignment.start,
-        runSpacing: 10.0,
-        spacing: 16.0, // Adjust the spacing between items here
-        children: List.generate(songTypes.length, (index) {
-          return Padding(
-            padding: const EdgeInsets.only(right: 25),
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (songTypes[index] == activeMenu1) {
-                    activeMenu1 = index;
-                  } else {
-                    // activeMenu2 = index;
-                  }
-                });
-              },
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    songTypes[index],
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: activeMenu == index ? Color(0xff6157ff) : grey,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  activeMenu == index
-                      ? Container(
-                          width: 10,
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: Color(0xff6157ff),
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                        )
-                      : Container(),
-                ],
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget getSongListView() {
-    return SizedBox(
-      height: 300,
-      child: FutureBuilder<QuerySnapshot>(
-        future: FirebaseFirestore.instance.collection("songs").get(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-              child: CircularProgressIndicator(
-                color: Color(0xff6157ff),
-              ),
-            );
-          } else if (snapshot.hasError) {
-            return Center(
-              child: Text("Error: ${snapshot.error}"),
-            );
-          } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Text("No songs available"),
-            );
-          } else {
-            return ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: snapshot.data!.docs.length,
-              itemBuilder: (context, i) {
-                var imageUrl = snapshot.data!.docs[i]['image_url'].toString();
-
-                if (imageUrl != "null") {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 30),
-                    child: Column(
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              PageTransition(
-                                alignment: Alignment.bottomCenter,
-                                child: MusicDetailPage(
-                                  title: snapshot.data!.docs[i]['song_name']
-                                      .toString(),
-                                  color: Color(0xff6157ff),
-                                  description: snapshot
-                                      .data!.docs[i]['artist_name']
-                                      .toString(),
-                                  img: imageUrl,
-                                  songUrl: snapshot.data!.docs[i]['song_url']
-                                      .toString(),
-                                ),
-                                type: PageTransitionType.scale,
-                              ),
-                            );
-                          },
-                          child: Container(
-                            width: 180,
-                            height: 180,
-                            decoration: BoxDecoration(
-                              image: DecorationImage(
-                                image: NetworkImage(imageUrl),
-                                fit: BoxFit.cover,
-                              ),
-                              color: Color(0xff6157ff),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.only(top: 140, left: 140),
-                              child: IconButton(
-                                icon: Icon(Icons.delete),
-                                color: Color.fromARGB(255, 255, 255, 255),
-                                onPressed: () {
-                                  // Handle delete functionality here
-                                  deleteSong(
-                                      context, snapshot.data!.docs[i].id);
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        const SizedBox(height: 20),
-                        Container(
-                          width: 180, // Adjust the width as needed
-                          child: Text(
-                            snapshot.data!.docs[i]['song_name'],
-                            style: const TextStyle(
-                              fontSize: 15,
-                              color: white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 2, // Set maxLines to the desired number
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        SizedBox(
-                          width: 100,
-                          child: Text(
-                            snapshot.data!.docs[i]['artist_name'],
-                            maxLines: 2,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: grey,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                } else {
-                  return Container();
-                }
-              },
-            );
-          }
-        },
-      ),
-    );
-  }
-
   void deleteSong(BuildContext context, String documentId) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text("Confirm Delete"),
-          content: Text("Are you sure you want to delete this song?"),
+          content: Text("Are you want to sure to delete this song?"),
           actions: <Widget>[
             TextButton(
               onPressed: () {

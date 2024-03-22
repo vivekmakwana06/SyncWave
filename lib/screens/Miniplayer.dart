@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 class MiniPlayer extends StatefulWidget {
@@ -27,7 +26,8 @@ class _MiniPlayerState extends State<MiniPlayer> {
       color: Colors.black,
       child: Row(
         children: [
-          Image.network(widget.imgUrl, width: 60, height: 60, fit: BoxFit.cover),
+          Image.network(widget.imgUrl,
+              width: 60, height: 60, fit: BoxFit.cover),
           SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,7 +45,8 @@ class _MiniPlayerState extends State<MiniPlayer> {
           ),
           Spacer(),
           IconButton(
-            icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white),
+            icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow,
+                color: Colors.white),
             onPressed: () {
               setState(() {
                 isPlaying = !isPlaying;
@@ -64,7 +65,3 @@ class _MiniPlayerState extends State<MiniPlayer> {
     );
   }
 }
-
-
-
-

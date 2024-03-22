@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sync_music/screens/InbuildPlaylist.dart';
+import 'package:sync_music/screens/MusicPage.dart';
 import 'package:sync_music/screens/homepage.dart';
 import 'package:sync_music/screens/MyLibraryPage.dart';
 // import 'package:youtube_sync_music/screens/sync_music.dart';
@@ -45,10 +46,8 @@ class _RootAppState extends State<RootApp> {
             userEmail: widget.userEmail,
             emailController:
                 emailController), // Pass the controller to homePage
-        // const MusicPage(),
-        InbuildPlaylist(
-          isHostCreated: false,
-        ),
+        const Collection(),
+        // ),
         Upload()
       ],
     );

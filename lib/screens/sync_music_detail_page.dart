@@ -12,6 +12,7 @@ class SyncMusicDetailPage extends StatefulWidget {
   final String img;
   final String songUrl;
   final Duration currentPosition;
+  final Function(String) onSongUrlChanged; // Add a callback function
 
   const SyncMusicDetailPage({
     Key? key,
@@ -21,6 +22,7 @@ class SyncMusicDetailPage extends StatefulWidget {
     required this.img,
     required this.songUrl,
     required this.currentPosition,
+    required this.onSongUrlChanged, // Pass the callback function as a parameter
   }) : super(key: key);
 
   @override
@@ -38,7 +40,7 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
   Duration pos = const Duration();
   Duration duration = const Duration(seconds: 594);
   Duration position = const Duration();
-  int timeDifference = 0; // Added timeDifference variable
+  int timeDifference = 0;
 
   late FirebaseFirestore firestore;
   late StreamSubscription<DocumentSnapshot> subscription;
@@ -62,6 +64,8 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
         setState(() {
           position = Duration(milliseconds: event["currentPosition"]);
           isPlaying = event["isPlaying"];
+          // Call the callback function to update the song URL
+          widget.onSongUrlChanged(event["songUrl"]);
         });
 
         // Handle play/pause state
@@ -69,6 +73,13 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
           audioPlayer.resume();
         } else {
           audioPlayer.pause();
+        }
+
+        // Check if the song URL has changed
+        String newSongUrl = event["songUrl"];
+        if (newSongUrl != widget.songUrl) {
+          // Stop the current song and play the new song
+          playMusic(newSongUrl);
         }
       }
     });
@@ -90,14 +101,17 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
 
   @override
   void dispose() {
-    // Cancel the subscription when the widget is disposed
-    subscription.cancel();
+    _timer.cancel(); // Cancel the timer
+    subscription.cancel(); // Cancel the Firestore subscription
     audioPlayer.release();
     audioPlayer.dispose();
     super.dispose();
   }
 
   void playMusic(String url) async {
+    // Stop the current song before playing the new song
+    audioPlayer.stop();
+
     audioPlayer.play(url);
     pos = widget.currentPosition;
 
@@ -130,6 +144,16 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
           updateSyncDocument();
         }
       });
+    });
+
+    // Update the song URL on the synced device
+    updateSongUrlOnSyncedDevice(url);
+  }
+
+  void updateSongUrlOnSyncedDevice(String newSongUrl) {
+    final docSync = firestore.collection("sync").doc(widget.title);
+    docSync.update({
+      'songUrl': newSongUrl,
     });
   }
 
@@ -205,126 +229,182 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
 
   Widget getBody() {
     var size = MediaQuery.of(context).size;
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 30, right: 30, top: 20),
-                child: Container(
-                  width: size.width - 100,
-                  height: size.width - 100,
-                  decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: widget.color,
-                        blurRadius: 50,
-                        spreadRadius: 5,
-                        offset: const Offset(-10, 40),
-                      ),
-                    ],
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 30, right: 30, top: 20),
-                child: Container(
-                  width: size.width - 60,
-                  height: size.width - 60,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: NetworkImage(widget.img),
-                      fit: BoxFit.cover,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(
-            height: 20,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 10, right: 10),
-            child: SizedBox(
-              width: size.width - 80,
-              height: 70,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Flexible(
-                          flex: 2,
-                          child: Text(
-                            widget.title,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+    if (!widget.description.isEmpty) {
+      // Document exists, return the music player
+      return SingleChildScrollView(
+        child: Column(
+          children: [
+            // Existing body content
+            Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 30, right: 30, top: 20),
+                  child: Container(
+                    width: size.width - 100,
+                    height: size.width - 100,
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: widget.color,
+                          blurRadius: 50,
+                          spreadRadius: 5,
+                          offset: const Offset(-10, 40),
                         ),
-                        Container(
-                          height: 20,
-                          width: 300,
-                          child: Flexible(
-                            flex: 1,
+                      ],
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 30, right: 30, top: 20),
+                  child: Container(
+                    width: size.width - 60,
+                    height: size.width - 60,
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: NetworkImage(widget.img),
+                        fit: BoxFit.cover,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(
+              height: 20,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 10, right: 10),
+              child: SizedBox(
+                width: size.width - 80,
+                height: 70,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Flexible(
+                            flex: 2,
                             child: Text(
-                              widget.description,
+                              widget.title,
+                              maxLines: 3,
                               overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: Colors.white.withOpacity(0.5),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                          Container(
+                            height: 20,
+                            width: 300,
+                            child: Flexible(
+                              flex: 1,
+                              child: Text(
+                                widget.description,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.white.withOpacity(0.5),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            Slider(
+              activeColor: Color(0xff6157ff),
+              value: position.inSeconds.toDouble(),
+              max: duration.inSeconds.toDouble(),
+              min: 0.0,
+              onChanged: (double value) {},
+            ),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.only(left: 30, right: 30),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    formatTime(position),
+                    style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                  ),
+                  Text(
+                    formatTime(duration - position),
+                    style: TextStyle(color: Colors.white.withOpacity(0.5)),
                   ),
                 ],
               ),
             ),
-          ),
-          const SizedBox(
-            height: 10,
-          ),
-          Slider(
-            activeColor: Color(0xff6157ff),
-            value: position.inSeconds.toDouble(),
-            max: duration.inSeconds.toDouble(),
-            min: 0.0,
-            onChanged: (double value) {},
-          ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.only(left: 30, right: 30),
-            child: Row(
+          ],
+        ),
+      );
+    } else {
+      // Document does not exist, return a blank music player
+      return SingleChildScrollView(
+        child: Column(
+          children: [
+            // Default blank music player content
+            Container(
+              width: double.infinity,
+              height: 200,
+              color: Colors.grey[300],
+              child: Center(
+                child: Icon(
+                  Icons.music_note,
+                  size: 100,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'Unknown Title',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            Text(
+              'Unknown Artist',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 10),
+            Slider(
+              activeColor: Color(0xff6157ff),
+              value: 0,
+              max: 100,
+              min: 0,
+              onChanged: (double value) {},
+            ),
+            SizedBox(height: 20),
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  formatTime(position),
+                  '0:00',
                   style: TextStyle(color: Colors.white.withOpacity(0.5)),
                 ),
                 Text(
-                  formatTime(duration - position),
+                  '0:00',
                   style: TextStyle(color: Colors.white.withOpacity(0.5)),
                 ),
               ],
             ),
-          ),
-          
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    }
   }
 }

@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:sync_music/AdminPanel/AdminPage.dart';
 import 'package:sync_music/main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:animated_text_kit/animated_text_kit.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({Key? key}) : super(key: key);
@@ -132,7 +131,6 @@ class _AuthGateState extends State<AuthGate> {
           isFormInteracted &&
           (passwordController.text == null ||
               passwordController.text.isEmpty)) {
-        // Display an error message for password validation during sign-in
         ScaffoldMessenger.of(currentContext).showSnackBar(
           SnackBar(
             content: Text(
@@ -235,7 +233,7 @@ class _AuthGateState extends State<AuthGate> {
 
         // Store additional user data in Firestore
         await FirebaseFirestore.instance
-            .collection('Authentication')
+            .collection('users')
             .doc(userCredential.user!.uid)
             .set({
           'email': emailController.text,
