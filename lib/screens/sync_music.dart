@@ -29,7 +29,7 @@ class _SyncCodeState extends State<SyncCode> {
             color: Color(0xff6157ff),
           ),
           onPressed: () {
-            Navigator.pop(context); // Navigate back
+            Navigator.pop(context);
           },
         ),
         titleSpacing: 0,
@@ -81,21 +81,22 @@ class _SyncCodeState extends State<SyncCode> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SizedBox(
-              height: 60,
+              height: 50,
             ),
-            Text(
-              'Enter Sync code to sync music on your device..',
-              style: TextStyle(
-                fontWeight: FontWeight.w200,
-                color: Colors.white60,
-                fontSize: 16,
-              ),
-            ),
-            SizedBox(
-              height: 40,
-            ),
+            // Padding(
+            //   padding: const EdgeInsets.only(left: 20, right: 20),
+            //   child: Text(
+            //     'Enter Sync code to sync music on your device..',
+            //     style: TextStyle(
+            //       fontWeight: FontWeight.w200,
+            //       color: Colors.white60,
+            //       fontSize: 20,
+            //     ),
+            //   ),
+            // ),
+
             Container(
-              height: 200,
+              height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
@@ -108,16 +109,16 @@ class _SyncCodeState extends State<SyncCode> {
               child: Icon(
                 Icons.music_note,
                 color: Colors.white,
-                size: 100, // Choose your desired size
+                size: 150, // Choose your desired size
               ),
             ),
             SizedBox(
-              height: 30,
+              height: 40,
             ),
             Padding(
               padding: const EdgeInsets.only(left: 30, right: 30),
               child: TextField(
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.white, fontSize: 30),
                 maxLength: 6,
                 enableIMEPersonalizedLearning: false,
                 keyboardType: TextInputType.number,
@@ -135,18 +136,21 @@ class _SyncCodeState extends State<SyncCode> {
                     borderSide: BorderSide(color: Color(0xffee49fd), width: 3),
                     borderRadius: BorderRadius.all(Radius.circular(10)),
                   ),
-                  labelText: 'Sync Code',
-                  labelStyle: TextStyle(color: white),
+                  labelText: 'Enter Sync Code',
+                  labelStyle: TextStyle(color: white, fontSize: 27),
                 ),
                 textInputAction: TextInputAction.done,
               ),
+            ),
+            SizedBox(
+              height: 20,
             ),
             if (showEmptyFieldError)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Text(
                   'Sync code cannot be empty',
-                  style: TextStyle(color: Colors.red),
+                  style: TextStyle(color: Colors.red, fontSize: 25),
                 ),
               ),
             if (showErrorMessage)
@@ -154,10 +158,12 @@ class _SyncCodeState extends State<SyncCode> {
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Text(
                   'Wrong host code',
-                  style: TextStyle(color: Colors.red),
+                  style: TextStyle(color: Colors.red, fontSize: 25),
                 ),
               ),
             Container(
+              height: 50,
+              width: 120,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(6.0),
                 gradient: LinearGradient(
@@ -208,7 +214,7 @@ class _SyncCodeState extends State<SyncCode> {
                 },
                 child: const Text(
                   "Sync",
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white, fontSize: 27),
                 ),
               ),
             ),

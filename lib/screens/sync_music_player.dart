@@ -40,7 +40,8 @@ class _SyncMusicPlayerState extends State<SyncMusicPlayer> {
         bool isPlaying =
             (snapshot.data() as Map<String, dynamic>?)?['isPlaying'] ?? false;
         bool hostExited =
-            (snapshot.data() as Map<String, dynamic>?)?['hostExited'] ?? false;
+            (snapshot.data() as Map<String, dynamic>?)?['party_status'] ??
+                false;
 
         if (isPlaying) {
           // Music is playing, display music detail screen
@@ -48,22 +49,29 @@ class _SyncMusicPlayerState extends State<SyncMusicPlayer> {
             data = snapshot.data() as Map<String, dynamic>;
             showSyncingScreen = false;
           });
-        } else if (hostExited) {
-          // Host has exited, display host exited screen
-          setState(() {
-            showSyncingScreen = false;
-          });
-        } else {
+        } else if (!hostExited) {
           // Music is not playing yet, continue showing syncing screen
           setState(() {
             showSyncingScreen = true;
           });
+        } else {
+          // Music is not playing yet, continue showing syncing screen
+          setState(() {
+            hostExited = true;
+          });
         }
+
+        // Update UI with new 'currentPosition' value
+        setState(() {
+          // Update the 'data' map with the new 'currentPosition'
+          data?['currentPosition'] =
+              (snapshot.data() as Map<String, dynamic>?)?['currentPosition'] ??
+                  0;
+        });
       } else {
         // Document does not exist, handle it based on your app logic
         setState(() {
           showSyncingScreen = true;
-          hostExited = true; // Host has exited
         });
       }
     });
@@ -72,28 +80,40 @@ class _SyncMusicPlayerState extends State<SyncMusicPlayer> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFF221e3b),
-      body: showSyncingScreen ? buildSyncingScreen() : buildMusicDetailScreen(),
-    );
-  }
-
-  Widget buildHostExitedScreen() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            "Host Is Exit",
-            style: TextStyle(color: Colors.white, fontSize: 20),
+      floatingActionButton: Container(
+        height: 70,
+        width: 70,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6.0),
+          gradient: LinearGradient(
+            begin: Alignment(-0.95, 0.0),
+            end: Alignment(1.0, 0.0),
+            colors: [Color(0xff6157ff), Color(0xffee49fd)],
           ),
-          SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context); // Navigate back
-            },
-            child: Text("Leave Host"),
+        ),
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.pop(context); // Navigate back
+          },
+          backgroundColor: Colors.transparent,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 15, right: 10),
+            child: Text(
+              'Leave Host',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color.fromARGB(255, 245, 245, 245),
+                fontSize: 16.5,
+              ),
+            ),
           ),
-        ],
+        ),
       ),
+      body: showSyncingScreen
+          ? buildSyncingScreen()
+          : hostExited
+              ? buildHostExitedScreen()
+              : buildMusicDetailScreen(),
     );
   }
 
@@ -115,7 +135,7 @@ class _SyncMusicPlayerState extends State<SyncMusicPlayer> {
               repeatForever: true,
               text: ['Syncing...'],
               textStyle: GoogleFonts.openSans(
-                textStyle: TextStyle(color: Colors.white, fontSize: 30),
+                textStyle: TextStyle(color: Colors.white, fontSize: 40),
               ),
             ),
           ],
@@ -124,9 +144,23 @@ class _SyncMusicPlayerState extends State<SyncMusicPlayer> {
     );
   }
 
+  Widget buildHostExitedScreen() {
+    return Container(
+      color: Color(0xFF221e3b),
+      child: Center(
+        child: Text(
+          "This host has already exited.",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget buildMusicDetailScreen() {
     if (data == null) {
-      // Handle the case when data is null (optional)
       return Container();
     }
 
@@ -140,15 +174,15 @@ class _SyncMusicPlayerState extends State<SyncMusicPlayer> {
     return SyncMusicDetailPage(
       title: title,
       description: description,
-      color: Colors.red,
+      color: Color(0xff6157ff),
       img: imgUrl,
       songUrl: songUrl,
       currentPosition: currentPosition,
       onSongUrlChanged: (newSongUrl) {
-        // Update the song URL in the parent widget's state
         setState(() {
           songUrl = newSongUrl;
         });
+        sync.doc(widget.docId).update({'songUrl': newSongUrl});
       },
     );
   }

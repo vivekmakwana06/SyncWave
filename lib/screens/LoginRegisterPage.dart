@@ -423,7 +423,7 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
-    String topMessage = isSignIn ? 'Sign In' : 'Register';
+    String topMessage = isSignIn ? 'Login' : 'Register';
 
     return Scaffold(
       backgroundColor: Color(0xFF221e3b),
@@ -536,7 +536,7 @@ class _AuthGateState extends State<AuthGate> {
                                         Colors.white),
                                   )
                                 : Text(
-                                    isSignIn ? 'Sign In' : 'Register',
+                                    isSignIn ? 'Login' : 'Register',
                                     style: TextStyle(
                                       fontSize: 18,
                                       color: Colors.white,
@@ -567,9 +567,7 @@ class _AuthGateState extends State<AuthGate> {
                                   ),
                                   SizedBox(width: 10),
                                   Text(
-                                    isSignIn
-                                        ? 'Register here.'
-                                        : 'Sign in here.',
+                                    isSignIn ? 'Register here.' : 'Login here.',
                                     style: TextStyle(
                                       color: Colors.red,
                                       decoration: TextDecoration.underline,

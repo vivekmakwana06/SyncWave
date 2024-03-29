@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:shimmer/shimmer.dart';
 
 class MusicDetailPage extends StatefulWidget {
   final String? title;
@@ -39,7 +40,6 @@ class _MusicDetailPageState extends State<MusicDetailPage>
     with SingleTickerProviderStateMixin {
   late final AssetsAudioPlayer assetsAudioPlayer;
   late final AudioPlayer player;
-
   late String _userName;
   int? generatedCode;
   bool isPlaying = true;
@@ -55,6 +55,9 @@ class _MusicDetailPageState extends State<MusicDetailPage>
   late FirebaseFirestore firestore;
   late StreamSubscription<DocumentSnapshot> subscription;
 
+  late AnimationController _rotationController;
+  bool musicLoaded = false;
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +66,12 @@ class _MusicDetailPageState extends State<MusicDetailPage>
     _loadUserName();
     assetsAudioPlayer = AssetsAudioPlayer();
     player = AudioPlayer();
+
+    // Initialize the AnimationController
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10), // Adjust the duration as needed
+    );
 
     firestore = FirebaseFirestore.instance;
 
@@ -78,6 +87,22 @@ class _MusicDetailPageState extends State<MusicDetailPage>
             isPlaying = event["isPlaying"];
           });
         }
+      }
+    });
+
+    assetsAudioPlayer.current.listen((playing) {
+      // Update duration when the audio is loaded and its duration is available
+      setState(() {
+        duration = playing!.audio.duration;
+        musicLoaded = true;
+      });
+    });
+
+    assetsAudioPlayer.isPlaying.listen((isPlaying) {
+      if (isPlaying) {
+        _rotationController.repeat();
+      } else {
+        _rotationController.stop();
       }
     });
 
@@ -129,7 +154,7 @@ class _MusicDetailPageState extends State<MusicDetailPage>
         'artistName': widget.description,
         'songUrl': widget.songUrl,
         'imgUrl': widget.img,
-        'currentPosition': 0, // Reset currentPosition when playing new song
+        'currentPosition': 0,
         'isPlaying': true, // Start playing the new song
       });
       openDialog("Sync music successfully");
@@ -165,7 +190,8 @@ class _MusicDetailPageState extends State<MusicDetailPage>
         isPlaying = true;
       });
     }
-    updateSyncDocument();
+    updateSyncDocument(); // Update sync document with current position
+    updatePlaybackState(isPlaying); // Update sync document with playback state
   }
 
   void updateSyncDocument() {
@@ -228,13 +254,22 @@ class _MusicDetailPageState extends State<MusicDetailPage>
     subscription.cancel();
     assetsAudioPlayer.dispose();
     player.dispose();
+    _rotationController.dispose();
+    updatePlaybackState(false);
     super.dispose();
+  }
+
+  void updatePlaybackState(bool isPlaying) {
+    final docSync = firestore.collection("sync").doc(widget.result.toString());
+    docSync.update({
+      'isPlaying': isPlaying,
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0c091c),
+      backgroundColor: Color(0xFF221e3b),
       appBar: getAppBar(),
       body: getBody(),
     );
@@ -252,17 +287,8 @@ class _MusicDetailPageState extends State<MusicDetailPage>
         },
       ),
       titleSpacing: 0,
-      backgroundColor: Colors.black,
+      backgroundColor: Color(0xFF221e3b),
       elevation: 0,
-      actions: const [
-        IconButton(
-          icon: Icon(
-            Icons.more_vert_sharp,
-            color: Colors.white,
-          ),
-          onPressed: null,
-        )
-      ],
     );
   }
 
@@ -293,9 +319,55 @@ class _MusicDetailPageState extends State<MusicDetailPage>
                   width: size.width - 60,
                   height: size.width - 60,
                   decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, widget.color!],
+                    ),
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
                       image: DecorationImage(
-                          image: NetworkImage(widget.img!), fit: BoxFit.cover),
-                      borderRadius: BorderRadius.circular(20)),
+                        image: NetworkImage(widget.img!),
+                        fit: BoxFit.cover,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Center(
+                      child: musicLoaded
+                          ? RotationTransition(
+                              turns: Tween(begin: 0.0, end: 1.0)
+                                  .animate(_rotationController),
+                              child: CircleAvatar(
+                                maxRadius: 80,
+                                backgroundImage: widget.img is String &&
+                                        widget.img!.isNotEmpty
+                                    ? NetworkImage(widget.img!)
+                                        as ImageProvider<Object>?
+                                    : AssetImage('assets/syncci.png'),
+
+                                backgroundColor: Colors
+                                    .transparent, // Ensure the background is transparent
+                                child: widget.img is String &&
+                                        widget.img!.isNotEmpty
+                                    ? null
+                                    : const Icon(
+                                        color: Colors.white,
+                                        Icons.music_note_rounded,
+                                        size: 60,
+                                      ),
+                              ),
+                            )
+                          : Shimmer.fromColors(
+                              baseColor: Colors.grey[300]!,
+                              highlightColor: Color(0xff6157ff),
+                              child: const CircleAvatar(
+                                maxRadius: 80,
+                              ),
+                            ),
+                    ),
+                  ),
                 ),
               )
             ],
@@ -481,8 +553,7 @@ class _MusicDetailPageState extends State<MusicDetailPage>
               padding: const EdgeInsets.only(top: 30),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                ],
+                children: [],
               ),
             ),
           )

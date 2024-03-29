@@ -9,20 +9,15 @@ class Collection extends StatefulWidget {
   final String? result;
   final bool? isCreatingHost;
   final bool? party_status;
-  final String? docId;
   const Collection(
-      {Key? key,
-      this.result,
-      this.party_status,
-      this.isCreatingHost,
-      this.docId})
+      {Key? key, this.result, this.party_status, this.isCreatingHost})
       : super(key: key);
 
   @override
-  _MusicPageState createState() => _MusicPageState();
+  _CollectionState createState() => _CollectionState();
 }
 
-class _MusicPageState extends State<Collection>
+class _CollectionState extends State<Collection>
     with SingleTickerProviderStateMixin {
   int activeMenu1 = 0;
   int activeMenu2 = 0;
@@ -37,8 +32,7 @@ class _MusicPageState extends State<Collection>
     super.initState();
     _tabController =
         TabController(length: 1, vsync: this); // Change length to 1
-    userId = FirebaseAuth
-        .instance.currentUser?.uid; // Assign current user's uid to userId
+    userId = FirebaseAuth.instance.currentUser?.uid;
     _userName = '';
     _loadUserName();
   }
@@ -80,24 +74,19 @@ class _MusicPageState extends State<Collection>
                 Navigator.of(context).pop(); // Close the dialog
                 Navigator.pop(context); // Navigate back to the previous page
 
-                // Update party_status to false and hostExited to true
+                // Update party_status to false in party collection
                 await FirebaseFirestore.instance
                     .collection("party")
                     .doc(widget
                         .result!) // Assuming widget.result contains the party document ID
-                    .update({
-                  'party_status': false,
-                  'hostExited': true,
-                });
+                    .update({'party_status': false});
 
-                // Notify all users that the host has exited
+                // Update party_status to false in sync collection
                 await FirebaseFirestore.instance
                     .collection("sync")
                     .doc(widget
-                        .docId) // Assuming widget.docId contains the sync document ID
-                    .update({
-                  'hostExited': true,
-                });
+                        .result!) // Assuming widget.result contains the sync document ID
+                    .update({'party_status': false});
               },
               child: Text("OK"),
             ),
@@ -410,7 +399,7 @@ class _MusicPageState extends State<Collection>
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text("Confirm Delete"),
-          content: Text("Are you want to sure to delete this song?"),
+          content: Text("Are you sure you want to delete this song?"),
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -433,10 +422,13 @@ class _MusicPageState extends State<Collection>
   }
 
   Future<void> performDelete(String documentId) async {
-    // Delete the song with the specified documentId from the CustomCollection collection
+    // Delete the song with the specified documentId from the user's CustomCollection collection
     try {
+      // Assuming userId is not null
       await FirebaseFirestore.instance
-          .collection("CustomCollection") // Update collection name here
+          .collection("users")
+          .doc(userId)
+          .collection("CustomCollection")
           .doc(documentId)
           .delete();
       print("Song deleted successfully!");

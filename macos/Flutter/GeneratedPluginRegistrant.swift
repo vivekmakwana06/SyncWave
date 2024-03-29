@@ -9,7 +9,7 @@ import assets_audio_player
 import assets_audio_player_web
 import audio_service
 import audio_session
-import audioplayers_darwin
+import audioplayers
 import cloud_firestore
 import file_selector_macos
 import firebase_auth
@@ -29,7 +29,7 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   AssetsAudioPlayerWebPlugin.register(with: registry.registrar(forPlugin: "AssetsAudioPlayerWebPlugin"))
   AudioServicePlugin.register(with: registry.registrar(forPlugin: "AudioServicePlugin"))
   AudioSessionPlugin.register(with: registry.registrar(forPlugin: "AudioSessionPlugin"))
-  AudioplayersDarwinPlugin.register(with: registry.registrar(forPlugin: "AudioplayersDarwinPlugin"))
+  AudioplayersPlugin.register(with: registry.registrar(forPlugin: "AudioplayersPlugin"))
   FLTFirebaseFirestorePlugin.register(with: registry.registrar(forPlugin: "FLTFirebaseFirestorePlugin"))
   FileSelectorPlugin.register(with: registry.registrar(forPlugin: "FileSelectorPlugin"))
   FLTFirebaseAuthPlugin.register(with: registry.registrar(forPlugin: "FLTFirebaseAuthPlugin"))

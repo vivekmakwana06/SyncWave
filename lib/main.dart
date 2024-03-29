@@ -9,6 +9,7 @@ import 'package:sync_music/screens/LoginRegisterPage.dart';
 import 'package:sync_music/screens/root_app.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FlutterDownloader.initialize(
@@ -28,6 +29,7 @@ void main() async {
 }
 
 void initPathProvider() async {
+  
   await getApplicationDocumentsDirectory();
 }
 

@@ -326,10 +326,6 @@ class _homePageState extends State<homePage> {
       var random = Random();
       int result = 100000 + random.nextInt(999999 - 100000);
 
-      final docSync = FirebaseFirestore.instance
-          .collection("SyncInbuildPlaylist")
-          .doc(result.toString());
-
       await FirebaseFirestore.instance
           .collection("party")
           .doc(result.toString())
@@ -345,19 +341,19 @@ class _homePageState extends State<homePage> {
         print("Failed to create host: $error");
       });
 
-      // Adding the GestureDetector code here
-      syncMusic = true;
-      await docSync.set({
-        'musicName': widget.musicName,
-        'artistName': widget.artistName,
-        'imgUrl': widget.imgUrl,
-        'songUrl': widget.songUrl,
-      });
+      // // Adding the GestureDetector code here
+      // syncMusic = true;
+      // await docSync.set({
+      //   'musicName': widget.musicName,
+      //   'artistName': widget.artistName,
+      //   'imgUrl': widget.imgUrl,
+      //   'songUrl': widget.songUrl,
+      // });
 
-      MusicDetailPage(
-        result: result.toString(),
-        isCreatingHost: true,
-      );
+      // MusicDetailPage(
+      //   result: result.toString(),
+      //   isCreatingHost: true,
+      // );
     } else {
       print("User email is null");
     }

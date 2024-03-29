@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:sync_music/screens/InbuildPlaylist.dart';
 import 'package:sync_music/screens/MusicPage.dart';
 import 'package:sync_music/screens/homepage.dart';
 import 'package:sync_music/screens/MyLibraryPage.dart';
-// import 'package:youtube_sync_music/screens/sync_music.dart';
-// import 'package:youtube_sync_music/screens/upload_music_page.dart';
 import 'package:salomon_bottom_bar/salomon_bottom_bar.dart';
 
 import '../../theme/colors.dart';
@@ -42,12 +39,8 @@ class _RootAppState extends State<RootApp> {
     return IndexedStack(
       index: activeTab,
       children: [
-        homePage(
-            userEmail: widget.userEmail,
-            emailController:
-                emailController), // Pass the controller to homePage
-        const Collection(),
-        // ),
+        homePage(userEmail: widget.userEmail, emailController: emailController),
+        Collection(),
         Upload()
       ],
     );
@@ -65,6 +58,8 @@ class _RootAppState extends State<RootApp> {
       items: [
         SalomonBottomBarItem(
           icon: Container(
+            height: 30,
+            width: 30,
             decoration: BoxDecoration(
               gradient: activeTab == 0
                   ? LinearGradient(
@@ -89,6 +84,8 @@ class _RootAppState extends State<RootApp> {
         ),
         SalomonBottomBarItem(
           icon: Container(
+            height: 30,
+            width: 30,
             decoration: BoxDecoration(
               gradient: activeTab == 1
                   ? LinearGradient(
@@ -113,6 +110,8 @@ class _RootAppState extends State<RootApp> {
         ),
         SalomonBottomBarItem(
           icon: Container(
+            height: 30,
+            width: 30,
             decoration: BoxDecoration(
               gradient: activeTab == 2
                   ? LinearGradient(
@@ -122,7 +121,7 @@ class _RootAppState extends State<RootApp> {
                     )
                   : null,
               borderRadius:
-                  BorderRadius.circular(30.0), // Adjust border radius as needed
+                  BorderRadius.circular(30.0), 
             ),
             child: Icon(
               Icons.person,

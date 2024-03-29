@@ -97,7 +97,7 @@ class _MusicPlayPageState extends State<MusicPlayPage>
     // Initialize the animation controller
     _rotationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 10), // Adjust the duration as needed
+      duration: const Duration(seconds: 50), // Adjust the duration as needed
     );
 
     // Listen for audio playback completion to update the play/pause icon
@@ -693,7 +693,7 @@ class _MusicPlayPageState extends State<MusicPlayPage>
                   IconButton(
                     onPressed: () {
                       skipForward();
-                    },  
+                    },
                     icon: const Icon(
                       Icons.forward_10,
                       color: Colors.white,
@@ -802,8 +802,6 @@ class _MusicPlayPageState extends State<MusicPlayPage>
       ),
     );
   }
-
-
 
   void addToFavorites(String documentId) {
     // Assuming you have an instance of FirebaseFirestore

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shimmer/shimmer.dart';
 import 'dart:async';
 
 import 'package:sync_music/theme/colors.dart';
@@ -12,7 +13,8 @@ class SyncMusicDetailPage extends StatefulWidget {
   final String img;
   final String songUrl;
   final Duration currentPosition;
-  final Function(String) onSongUrlChanged; // Add a callback function
+
+  final Function(String) onSongUrlChanged;
 
   const SyncMusicDetailPage({
     Key? key,
@@ -22,15 +24,17 @@ class SyncMusicDetailPage extends StatefulWidget {
     required this.img,
     required this.songUrl,
     required this.currentPosition,
-    required this.onSongUrlChanged, // Pass the callback function as a parameter
+    required this.onSongUrlChanged,
   }) : super(key: key);
 
   @override
   _SyncMusicDetailPageState createState() => _SyncMusicDetailPageState();
 }
 
-class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
+class _SyncMusicDetailPageState extends State<SyncMusicDetailPage>
+    with SingleTickerProviderStateMixin {
   AudioPlayer audioPlayer = AudioPlayer();
+
   AudioPlayerState audioPlayerState = AudioPlayerState.PAUSED;
   bool isPlaying = true;
   bool syncMusic = false;
@@ -42,12 +46,21 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
   Duration position = const Duration();
   int timeDifference = 0;
 
+  late AnimationController _rotationController;
+  bool musicLoaded = false;
   late FirebaseFirestore firestore;
   late StreamSubscription<DocumentSnapshot> subscription;
+  // late final Duration currentPosition;
 
   @override
   void initState() {
     super.initState();
+
+    pos = widget.currentPosition;
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10), // Adjust the duration as needed
+    );
     audioPlayer.onPlayerStateChanged.listen((AudioPlayerState s) {
       audioPlayerState = s;
     });
@@ -66,6 +79,7 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
           isPlaying = event["isPlaying"];
           // Call the callback function to update the song URL
           widget.onSongUrlChanged(event["songUrl"]);
+          print('Position: $position');
         });
 
         // Handle play/pause state
@@ -84,17 +98,20 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
       }
     });
 
-    void updateSyncDocument() {
-      final docSync = firestore.collection("sync").doc(widget.title);
-
-      // Apply time difference to adjust the position sent to Firestore
-      final adjustedPosition = position.inMilliseconds + timeDifference;
-
-      docSync.update({
-        'currentPosition': adjustedPosition,
-        'isPlaying': isPlaying,
+    audioPlayer.onDurationChanged.listen((event) {
+      setState(() {
+        duration = event;
+        musicLoaded = true;
       });
-    }
+    });
+
+    audioPlayer.onPlayerStateChanged.listen((state) {
+      if (state == AudioPlayerState.PLAYING) {
+        _rotationController.repeat();
+      } else {
+        _rotationController.stop();
+      }
+    });
 
     playMusic(widget.songUrl);
   }
@@ -105,6 +122,7 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
     subscription.cancel(); // Cancel the Firestore subscription
     audioPlayer.release();
     audioPlayer.dispose();
+    _rotationController.dispose();
     super.dispose();
   }
 
@@ -131,29 +149,13 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
     });
     audioPlayer.setReleaseMode(ReleaseMode.STOP);
 
-    audioPlayer.onDurationChanged.listen((event) {
-      setState(() {
-        duration = event;
-      });
-    });
-
     audioPlayer.onAudioPositionChanged.listen((event) {
       setState(() {
-        position = event;
+        position =  widget.currentPosition;
         if (syncMusic) {
           updateSyncDocument();
         }
       });
-    });
-
-    // Update the song URL on the synced device
-    updateSongUrlOnSyncedDevice(url);
-  }
-
-  void updateSongUrlOnSyncedDevice(String newSongUrl) {
-    final docSync = firestore.collection("sync").doc(widget.title);
-    docSync.update({
-      'songUrl': newSongUrl,
     });
   }
 
@@ -195,7 +197,36 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0c091c),
+      backgroundColor: Color(0xFF221e3b),
+      floatingActionButton: Container(
+        height: 70,
+        width: 70,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6.0),
+          gradient: LinearGradient(
+            begin: Alignment(-0.95, 0.0),
+            end: Alignment(1.0, 0.0),
+            colors: [Color(0xff6157ff), Color(0xffee49fd)],
+          ),
+        ),
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.pop(context); // Navigate back
+          },
+          backgroundColor: Colors.transparent,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 15, right: 10),
+            child: Text(
+              'Leave Host',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color.fromARGB(255, 245, 245, 245),
+                fontSize: 18,
+              ),
+            ),
+          ),
+        ),
+      ),
       appBar: getAppBar(),
       body: getBody(),
     );
@@ -209,11 +240,11 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
           color: Color(0xff6157ff),
         ),
         onPressed: () {
-          Navigator.pop(context); // Navigate back
+          Navigator.pop(context);
         },
       ),
       titleSpacing: 0,
-      backgroundColor: black,
+      backgroundColor: Color(0xFF221e3b),
       elevation: 0,
       actions: const [
         IconButton(
@@ -229,12 +260,11 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
 
   Widget getBody() {
     var size = MediaQuery.of(context).size;
+    print('Position: ${widget.currentPosition}');
     if (!widget.description.isEmpty) {
-      // Document exists, return the music player
       return SingleChildScrollView(
         child: Column(
           children: [
-            // Existing body content
             Stack(
               children: [
                 Padding(
@@ -266,6 +296,37 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
                         fit: BoxFit.cover,
                       ),
                       borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Center(
+                      child: musicLoaded
+                          ? RotationTransition(
+                              turns: Tween(begin: 0.0, end: 1.0)
+                                  .animate(_rotationController),
+                              child: CircleAvatar(
+                                maxRadius: 80,
+                                backgroundImage: widget.img is String &&
+                                        widget.img!.isNotEmpty
+                                    ? NetworkImage(widget.img!)
+                                        as ImageProvider<Object>?
+                                    : AssetImage('assets/syncci.png'),
+                                backgroundColor: Colors.transparent,
+                                child: widget.img is String &&
+                                        widget.img!.isNotEmpty
+                                    ? null
+                                    : const Icon(
+                                        color: Colors.white,
+                                        Icons.music_note_rounded,
+                                        size: 60,
+                                      ),
+                              ),
+                            )
+                          : Shimmer.fromColors(
+                              baseColor: Colors.grey[300]!,
+                              highlightColor: Color(0xff6157ff),
+                              child: const CircleAvatar(
+                                maxRadius: 80,
+                              ),
+                            ),
                     ),
                   ),
                 ),
@@ -326,7 +387,7 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
               height: 10,
             ),
             Slider(
-              activeColor: Color(0xff6157ff),
+              activeColor: primary,
               value: position.inSeconds.toDouble(),
               max: duration.inSeconds.toDouble(),
               min: 0.0,
@@ -340,11 +401,11 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage> {
                 children: [
                   Text(
                     formatTime(position),
-                    style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                    style: TextStyle(color: white.withOpacity(0.5)),
                   ),
                   Text(
                     formatTime(duration - position),
-                    style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                    style: TextStyle(color: white.withOpacity(0.5)),
                   ),
                 ],
               ),

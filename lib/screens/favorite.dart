@@ -11,9 +11,9 @@ class _FavoriteState extends State<Favorite> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1a1b1f),
+      backgroundColor: Color(0xFF221e3b),
       appBar: AppBar(
-        backgroundColor: Color(0xFF1a1b1f),
+        backgroundColor: Color(0xFF221e3b),
         elevation: 0,
         leading: IconButton(
           icon: Icon(
