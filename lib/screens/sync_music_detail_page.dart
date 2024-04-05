@@ -61,12 +61,13 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage>
       vsync: this,
       duration: const Duration(seconds: 10), // Adjust the duration as needed
     );
-    audioPlayer.onPlayerStateChanged.listen((AudioPlayerState s) {
-      audioPlayerState = s;
+    audioPlayer.onPlayerStateChanged.listen((AudioPlayerState currentPosition) {
+      audioPlayerState = currentPosition;
     });
 
     // Initialize Firestore
     firestore = FirebaseFirestore.instance;
+    // audioPlayer = AudioPlayer();
 
     subscription = firestore
         .collection("sync")
@@ -79,28 +80,14 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage>
           isPlaying = event["isPlaying"];
           // Call the callback function to update the song URL
           widget.onSongUrlChanged(event["songUrl"]);
-          print('Position: $position');
+          // print('Position: $position');
         });
-
-        // Handle play/pause state
-        if (isPlaying) {
-          audioPlayer.resume();
-        } else {
-          audioPlayer.pause();
-        }
-
-        // Check if the song URL has changed
-        String newSongUrl = event["songUrl"];
-        if (newSongUrl != widget.songUrl) {
-          // Stop the current song and play the new song
-          playMusic(newSongUrl);
-        }
       }
     });
 
-    audioPlayer.onDurationChanged.listen((event) {
+    audioPlayer.onDurationChanged.listen((currentPosition) {
       setState(() {
-        duration = event;
+        duration = currentPosition;
         musicLoaded = true;
       });
     });
@@ -130,8 +117,11 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage>
     // Stop the current song before playing the new song
     audioPlayer.stop();
 
+    // Set the initial position of the audio player
+    audioPlayer.seek(widget.currentPosition);
+
+    // Start playing the new song
     audioPlayer.play(url);
-    pos = widget.currentPosition;
 
     // Calculate the starting point for syncing playback
     int syncStartTime = widget.currentPosition.inMilliseconds;
@@ -151,12 +141,16 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage>
 
     audioPlayer.onAudioPositionChanged.listen((event) {
       setState(() {
-        position =  widget.currentPosition;
+        position = widget.currentPosition;
         if (syncMusic) {
           updateSyncDocument();
         }
       });
     });
+  }
+
+  void updatePlaybackPosition(Duration newPosition) {
+    audioPlayer.seek(newPosition);
   }
 
   void updateSyncDocument() {
@@ -169,6 +163,9 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage>
       'currentPosition': adjustedPosition,
       'isPlaying': isPlaying,
     });
+
+    // Update the playback position of the music
+    audioPlayer.seek(Duration(milliseconds: adjustedPosition));
   }
 
   // convert format time
@@ -260,7 +257,7 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage>
 
   Widget getBody() {
     var size = MediaQuery.of(context).size;
-    print('Position: ${widget.currentPosition}');
+    print('First Position: ${widget.currentPosition}');
     if (!widget.description.isEmpty) {
       return SingleChildScrollView(
         child: Column(
@@ -391,7 +388,9 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage>
               value: position.inSeconds.toDouble(),
               max: duration.inSeconds.toDouble(),
               min: 0.0,
-              onChanged: (double value) {},
+              onChanged: (double value) {
+                audioPlayer.seek(Duration(seconds: value.toInt()));
+              },
             ),
             const SizedBox(height: 20),
             Padding(

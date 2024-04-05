@@ -80,13 +80,6 @@ class _CollectionState extends State<Collection>
                     .doc(widget
                         .result!) // Assuming widget.result contains the party document ID
                     .update({'party_status': false});
-
-                // Update party_status to false in sync collection
-                await FirebaseFirestore.instance
-                    .collection("sync")
-                    .doc(widget
-                        .result!) // Assuming widget.result contains the sync document ID
-                    .update({'party_status': false});
               },
               child: Text("OK"),
             ),
@@ -278,6 +271,7 @@ class _CollectionState extends State<Collection>
                           itemBuilder: (context, i) {
                             var imageUrl =
                                 snapshot.data!.docs[i]['image_url'].toString();
+                            var documentId = snapshot.data!.docs[i].id;
 
                             if (imageUrl != "null") {
                               return GestureDetector(
@@ -301,6 +295,7 @@ class _CollectionState extends State<Collection>
                                         result: widget.result,
                                         isCreatingHost:
                                             widget.isCreatingHost ?? false,
+                                        documentId: documentId,
                                       ),
                                       type: PageTransitionType.scale,
                                     ),

@@ -10,14 +10,14 @@ import 'package:path/path.dart';
 import 'package:sync_music/screens/LoginRegisterPage.dart';
 import 'package:sync_music/screens/favorite.dart';
 
-class Upload extends StatefulWidget {
-  const Upload({Key? key}) : super(key: key);
+class Profile extends StatefulWidget {
+  const Profile({Key? key}) : super(key: key);
 
   @override
-  _UploadState createState() => _UploadState();
+  _ProfileState createState() => _ProfileState();
 }
 
-class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
+class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
   TextEditingController songName = TextEditingController();
   TextEditingController artistName = TextEditingController();
   double uploadProgress = 0.0;
@@ -239,7 +239,7 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'My Library',
+                  'Profile',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Color(0xFFFFFFFF),
@@ -522,8 +522,7 @@ class _UploadState extends State<Upload> with SingleTickerProviderStateMixin {
                           String? userId =
                               FirebaseAuth.instance.currentUser?.uid;
                           if (userId != null) {
-                         finalUpload(context, userId, _userName);
-
+                            finalUpload(context, userId, _userName);
                           } else {
                             // Handle the case where userId is null (e.g., user not authenticated)
                             print("User ID is null");

@@ -41,7 +41,7 @@ class _RootAppState extends State<RootApp> {
       children: [
         homePage(userEmail: widget.userEmail, emailController: emailController),
         Collection(),
-        Upload()
+        Profile()
       ],
     );
   }
@@ -120,8 +120,7 @@ class _RootAppState extends State<RootApp> {
                       colors: [Color(0xff6157ff), Color(0xffee49fd)],
                     )
                   : null,
-              borderRadius:
-                  BorderRadius.circular(30.0), 
+              borderRadius: BorderRadius.circular(30.0),
             ),
             child: Icon(
               Icons.person,
@@ -129,7 +128,7 @@ class _RootAppState extends State<RootApp> {
             ),
           ),
           title: Text(
-            "My Library",
+            "Profile",
             style: TextStyle(color: Colors.white, fontSize: 18),
           ),
           selectedColor: primary,

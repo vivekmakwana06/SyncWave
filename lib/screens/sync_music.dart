@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:sync_music/screens/sync_music_player.dart';
@@ -15,6 +16,35 @@ class _SyncCodeState extends State<SyncCode> {
   TextEditingController syncController = TextEditingController();
   bool showErrorMessage = false;
   bool showEmptyFieldError = false;
+
+  late String _userName;
+  late String? userId;
+
+  @override
+  void initState() {
+    super.initState();
+    userId = FirebaseAuth.instance.currentUser?.uid;
+    _userName = '';
+    _loadUserName();
+  }
+
+  Future<String?> getUserName() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      return user.email;
+    }
+    return null;
+  }
+
+  void _loadUserName() async {
+    String? userEmail = await getUserName();
+    if (userEmail != null) {
+      setState(() {
+        // Set the userEmail to a variable to use in the welcome message
+        _userName = userEmail;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +102,44 @@ class _SyncCodeState extends State<SyncCode> {
     );
   }
 
+  Future<void> storeSyncUserData(String hostCode) async {
+    try {
+      // Get the current date and time
+      DateTime now = DateTime.now();
+      Timestamp timestamp = Timestamp.fromDate(now);
+
+      // Store sync user data in Firestore
+      await FirebaseFirestore.instance.collection('SyncUser').add({
+        'host_code': hostCode,
+        'email': _userName,
+        'datetime': timestamp,
+      });
+    } catch (e) {
+      print('Error storing sync user data: $e');
+    }
+  }
+
+  Future<void> storeSyncUserData1(String hostCode) async {
+    try {
+      // Get the current date and time
+      DateTime now = DateTime.now();
+      Timestamp timestamp = Timestamp.fromDate(now);
+
+      // Store sync user data in Firestore
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(userId)
+          .collection('SyncUser')
+          .add({
+        'host_code': hostCode,
+        'email': _userName,
+        'datetime': timestamp,
+      });
+    } catch (e) {
+      print('Error storing sync user data: $e');
+    }
+  }
+
   Widget buildSyncLogin() {
     return SingleChildScrollView(
       child: Padding(
@@ -83,18 +151,6 @@ class _SyncCodeState extends State<SyncCode> {
             SizedBox(
               height: 50,
             ),
-            // Padding(
-            //   padding: const EdgeInsets.only(left: 20, right: 20),
-            //   child: Text(
-            //     'Enter Sync code to sync music on your device..',
-            //     style: TextStyle(
-            //       fontWeight: FontWeight.w200,
-            //       color: Colors.white60,
-            //       fontSize: 20,
-            //     ),
-            //   ),
-            // ),
-
             Container(
               height: 250,
               decoration: BoxDecoration(
@@ -182,7 +238,7 @@ class _SyncCodeState extends State<SyncCode> {
                   elevation: 20,
                 ),
                 onPressed: () async {
-                  String hostCode = syncController.text ?? "";
+                  String hostCode = syncController.text;
                   if (hostCode.isEmpty) {
                     setState(() {
                       showEmptyFieldError = true;
@@ -196,6 +252,10 @@ class _SyncCodeState extends State<SyncCode> {
                         showEmptyFieldError = false;
                         showErrorMessage = false;
                       });
+                      // Store sync user data
+                      await storeSyncUserData(hostCode);
+                      await storeSyncUserData1(hostCode);
+                      // Navigate to SyncMusicPlayer screen
                       Navigator.push(
                         context,
                         PageTransition(

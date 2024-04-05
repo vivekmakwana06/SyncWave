@@ -4,66 +4,82 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:sync_music/AdminPanel/AdminPage.dart';
 import 'package:sync_music/screens/LoginRegisterPage.dart';
+import 'package:sync_music/screens/music_detail_page.dart';
 import 'package:sync_music/screens/root_app.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await FlutterDownloader.initialize(
-    debug: true,
-  );
+  await FlutterDownloader.initialize(debug: true);
   await Firebase.initializeApp();
   initPathProvider();
+
+  User? user = await AuthService.getCurrentUser();
+  String? userId = user?.uid;
+
   runApp(
-    MaterialApp(
-      theme: ThemeData(
-        useMaterial3: true,
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+            create: (_) => FavoriteSongsProvider(userId ?? "")),
+      ],
+      child: MaterialApp(
+        theme: ThemeData(
+          useMaterial3: true,
+        ),
+        home: SplashScreen(userId: userId),
+        debugShowCheckedModeBanner: false,
       ),
-      home: const SplashScreen(),
-      debugShowCheckedModeBanner: false,
     ),
   );
 }
 
 void initPathProvider() async {
-  
   await getApplicationDocumentsDirectory();
 }
 
 class MyApp extends StatelessWidget {
   final String userEmail;
+  final String? userId;
 
-  const MyApp({Key? key, required this.userEmail}) : super(key: key);
+  const MyApp({Key? key, required this.userEmail, this.userId})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(
-        useMaterial3: true,
-      ),
-      home: FutureBuilder<User?>(
-        future: AuthService.getCurrentUser(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return SplashScreen();
-          } else if (snapshot.hasError) {
-            return AuthGate();
-          } else if (snapshot.hasData && snapshot.data != null) {
-            User user = snapshot.data!;
-            if (AuthService.isAdminUser(user.email!, "vivek_makwana_")) {
-              return AdminDashboard();
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => FavoriteSongsProvider(userEmail)),
+      ],
+      child: MaterialApp(
+        title: 'Music App',
+        theme: ThemeData(
+          useMaterial3: true,
+        ),
+        home: FutureBuilder<User?>(
+          future: AuthService.getCurrentUser(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return SplashScreen();
+            } else if (snapshot.hasError) {
+              return AuthGate();
+            } else if (snapshot.hasData && snapshot.data != null) {
+              User user = snapshot.data!;
+              if (AuthService.isAdminUser(user.email!, "vivek_makwana_")) {
+                return AdminDashboard();
+              } else {
+                return RootApp(userEmail: user.email!);
+              }
             } else {
-              return RootApp(userEmail: user.email!);
+              return AuthGate();
             }
-          } else {
-            return AuthGate();
-          }
-        },
+          },
+        ),
+        debugShowCheckedModeBanner: false,
       ),
-      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -80,7 +96,9 @@ class AuthService {
 }
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+  final String? userId; // Declare userId as a parameter
+
+  const SplashScreen({Key? key, this.userId}) : super(key: key);
 
   @override
   _SplashScreenState createState() => _SplashScreenState();
@@ -178,7 +196,7 @@ class _SplashScreenState extends State<SplashScreen>
                   color: Colors.white,
                 ).copyWith(fontSize: 30),
                 speed: const Duration(milliseconds: 100),
-                totalRepeatCount: 10,
+                totalRepeatCount: 5,
                 pause: const Duration(milliseconds: 1),
                 displayFullTextOnTap: true,
                 stopPauseOnTap: true,

@@ -166,6 +166,7 @@ class _SyncMusicPlayerState extends State<SyncMusicPlayer> {
 
     Duration currentPosition =
         Duration(milliseconds: data?['currentPosition'] ?? 0);
+
     String title = data?['musicName'] ?? 'Unknown Title';
     String description = data?['artistName'] ?? 'Unknown Artist';
     String imgUrl = data?['imgUrl'] ?? '';
