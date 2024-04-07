@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sync_music/AdminPanel/AdminPage.dart';
 import 'package:sync_music/main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -204,25 +203,13 @@ class _AuthGateState extends State<AuthGate> {
           isFormInteracted = false;
         });
 
-        // Check if the signed-in user has admin credentials
-        if (isAdminUser(emailController.text, passwordController.text)) {
-          // User is an admin, handle admin authentication
-          // For example, navigate to the admin dashboard
-          Navigator.pushReplacement(
-            currentContext,
-            MaterialPageRoute(builder: (context) {
-              return AdminDashboard();
-            }),
-          );
-        } else {
-          // User is not an admin, navigate to the regular user screen
-          Navigator.pushReplacement(
-            currentContext,
-            MaterialPageRoute(builder: (context) {
-              return MyApp(userEmail: emailController.text);
-            }),
-          );
-        }
+        // Navigate to the regular user screen after signing in
+        Navigator.pushReplacement(
+          currentContext,
+          MaterialPageRoute(builder: (context) {
+            return MyApp(userEmail: emailController.text);
+          }),
+        );
       } else {
         // User does not exist, proceed with registration
         UserCredential userCredential =
@@ -331,12 +318,6 @@ class _AuthGateState extends State<AuthGate> {
         isLoading = false;
       });
     }
-  }
-
-  bool isAdminUser(String email, String password) {
-    // Check if the email and password combination is the admin's
-    // You can customize this condition based on your requirements
-    return email == 'vivekmakwana@gmail.com' && password == 'vivek_makwana_';
   }
 
   Widget buildTextField({

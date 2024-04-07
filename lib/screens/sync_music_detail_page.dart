@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:audioplayers/audioplayers.dart';
+
 import 'package:shimmer/shimmer.dart';
 import 'dart:async';
 
@@ -45,29 +46,29 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage>
   Duration duration = const Duration(seconds: 594);
   Duration position = const Duration();
   int timeDifference = 0;
-
+  late Duration initialPosition;
   late AnimationController _rotationController;
-  bool musicLoaded = false;
+  // bool musicLoaded = false;
+  late bool musicLoaded;
   late FirebaseFirestore firestore;
   late StreamSubscription<DocumentSnapshot> subscription;
-  // late final Duration currentPosition;
 
   @override
   void initState() {
     super.initState();
+    musicLoaded = false;
 
-    pos = widget.currentPosition;
+    initialPosition = widget.currentPosition;
     _rotationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 10), // Adjust the duration as needed
     );
-    audioPlayer.onPlayerStateChanged.listen((AudioPlayerState currentPosition) {
-      audioPlayerState = currentPosition;
+    audioPlayer.onPlayerStateChanged.listen((AudioPlayerState s) {
+      audioPlayerState = s;
     });
 
     // Initialize Firestore
     firestore = FirebaseFirestore.instance;
-    // audioPlayer = AudioPlayer();
 
     subscription = firestore
         .collection("sync")
@@ -79,15 +80,13 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage>
           position = Duration(milliseconds: event["currentPosition"]);
           isPlaying = event["isPlaying"];
           // Call the callback function to update the song URL
-          widget.onSongUrlChanged(event["songUrl"]);
-          // print('Position: $position');
         });
       }
     });
 
-    audioPlayer.onDurationChanged.listen((currentPosition) {
+    audioPlayer.onDurationChanged.listen((event) {
       setState(() {
-        duration = currentPosition;
+        duration = event;
         musicLoaded = true;
       });
     });
@@ -101,16 +100,6 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage>
     });
 
     playMusic(widget.songUrl);
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel(); // Cancel the timer
-    subscription.cancel(); // Cancel the Firestore subscription
-    audioPlayer.release();
-    audioPlayer.dispose();
-    _rotationController.dispose();
-    super.dispose();
   }
 
   void playMusic(String url) async {
@@ -142,30 +131,32 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage>
     audioPlayer.onAudioPositionChanged.listen((event) {
       setState(() {
         position = widget.currentPosition;
-        if (syncMusic) {
-          updateSyncDocument();
-        }
       });
     });
   }
 
-  void updatePlaybackPosition(Duration newPosition) {
-    audioPlayer.seek(newPosition);
-  }
+  // void updateSyncDocument() {
+  //   final docSync = firestore.collection("sync").doc(widget.title);
 
-  void updateSyncDocument() {
-    final docSync = firestore.collection("sync").doc(widget.title);
+  //   // Apply time difference to adjust the position sent to Firestore
+  //   final adjustedPosition = position.inMilliseconds + timeDifference;
 
-    // Apply time difference to adjust the position sent to Firestore
-    final adjustedPosition = position.inMilliseconds + timeDifference;
+  //   docSync.update({
+  //     'currentPosition': adjustedPosition,
+  //     'isPlaying': isPlaying,
+  //   });
 
-    docSync.update({
-      'currentPosition': adjustedPosition,
-      'isPlaying': isPlaying,
-    });
+  //   // Update the playback position of the music
+  //   audioPlayer.seek(Duration(milliseconds: adjustedPosition));
+  // }
 
-    // Update the playback position of the music
-    audioPlayer.seek(Duration(milliseconds: adjustedPosition));
+  @override
+  void dispose() {
+    _timer.cancel(); // Cancel the timer
+    subscription.cancel();
+    audioPlayer.release();
+    audioPlayer.dispose();
+    super.dispose();
   }
 
   // convert format time
@@ -184,10 +175,15 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage>
   @override
   Widget build(BuildContext context) {
     if (audioState == 1 && audioPlayerState == AudioPlayerState.PLAYING) {
-      int timer = int.parse(title);
-      timer = timer + 2600;
-      Duration currentPosition = Duration(milliseconds: timer);
-      currentPosition += widget.currentPosition;
+      int timer = 0;
+      try {
+        timer = int.parse(widget.title);
+      } catch (e) {
+        print('Error parsing title: $e');
+      }
+
+      Duration currentPosition =
+          Duration(milliseconds: timer + widget.currentPosition.inMilliseconds);
       audioPlayer.seek(currentPosition);
       _timer.cancel();
       audioState = 0;
@@ -388,9 +384,7 @@ class _SyncMusicDetailPageState extends State<SyncMusicDetailPage>
               value: position.inSeconds.toDouble(),
               max: duration.inSeconds.toDouble(),
               min: 0.0,
-              onChanged: (double value) {
-                audioPlayer.seek(Duration(seconds: value.toInt()));
-              },
+              onChanged: (double value) {},
             ),
             const SizedBox(height: 20),
             Padding(

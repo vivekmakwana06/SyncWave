@@ -6,9 +6,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart';
 import 'package:sync_music/screens/LoginRegisterPage.dart';
 import 'package:sync_music/screens/favorite.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Profile extends StatefulWidget {
   const Profile({Key? key}) : super(key: key);
@@ -21,7 +23,6 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
   TextEditingController songName = TextEditingController();
   TextEditingController artistName = TextEditingController();
   double uploadProgress = 0.0;
-
   late TabController _tabController;
   double imageUploadProgress = 0.0;
   late String imagepath, songPath;
@@ -40,6 +41,22 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
     _tabController = TabController(length: 2, vsync: this);
     _userName = '';
     _loadUserName();
+    _loadProfileImage();
+  }
+
+  void _loadProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (userId != null) {
+      final profileImagePath = prefs.getString('profileImage_$userId');
+
+      if (profileImagePath != null) {
+        setState(() {
+          _profileImage = File(profileImagePath);
+        });
+      }
+    }
   }
 
   Future<String?> getUserName() async {
@@ -54,7 +71,6 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
     String? userEmail = await getUserName();
     if (userEmail != null) {
       setState(() {
-        // Set the userEmail to a variable to use in the welcome message
         _userName = userEmail;
       });
     }
@@ -101,8 +117,8 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
 
   uploadSongFile(Uint8List song, String songPath) async {
     setState(() {
-      _isUploading = true; // Set _isUploading to true when upload starts
-      uploadProgress = 0.0; // Reset upload progress when starting upload
+      _isUploading = true;
+      uploadProgress = 0.0;
     });
 
     reference = FirebaseStorage.instance.ref().child(songPath);
@@ -207,6 +223,93 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
     }
   }
 
+  void _showImagePickerBottomSheet(BuildContext context) {
+    // Add BuildContext as a parameter
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          padding: EdgeInsets.symmetric(vertical: 20, horizontal: 50),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(6.0),
+            gradient: LinearGradient(
+              begin: Alignment(-0.95, 0.0),
+              end: Alignment(1.0, 0.0),
+              colors: [Color(0xff6157ff), Color(0xffee49fd)],
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(
+                  Icons.photo_library,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                title: Text(
+                  'Upload from Gallery',
+                  style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold),
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _pickImage(ImageSource.gallery);
+                },
+              ),
+              // SizedBox(height: 10),
+              Divider(thickness: .4),
+              ListTile(
+                leading: Icon(
+                  Icons.camera_alt,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                title: Text(
+                  'Capture from Camera',
+                  style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold),
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _pickImage(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _saveProfileImage(String imagePath) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('profileImage_$userId', imagePath);
+    }
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final pickedImage = await ImagePicker().pickImage(source: source);
+
+    if (pickedImage != null) {
+      setState(() {
+        _profileImage = File(pickedImage.path);
+      });
+
+      // Save the image file path to shared preferences
+      await _saveProfileImage(pickedImage.path);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -272,6 +375,30 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                   padding: EdgeInsets.all(20),
                   child: Column(
                     children: [
+                      SizedBox(height: 10),
+                      GestureDetector(
+                        onTap: () {
+                          // Open bottom sheet to select image from gallery or camera
+                          _showImagePickerBottomSheet(context);
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Color(0xffee49fd),
+                              width: 4,
+                            ),
+                          ),
+                          child: CircleAvatar(
+                            radius: 100,
+                            backgroundImage: _profileImage != null
+                                ? FileImage(
+                                    _profileImage!) // Display selected image
+                                : AssetImage('assets/default_profile_image.jpg')
+                                    as ImageProvider, // Placeholder image
+                          ),
+                        ),
+                      ),
                       SizedBox(height: 30),
                       Text(
                         'Welcome to,',
@@ -299,7 +426,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                           ),
                         ),
                       ),
-                      SizedBox(height: 80),
+                      SizedBox(height: 50),
                       Divider(thickness: .4),
                       Padding(
                         padding: const EdgeInsets.all(15.0),
@@ -340,7 +467,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                       ),
                       Divider(thickness: .4),
                       SizedBox(
-                        height: 110,
+                        height: 40,
                       ),
                       ElevatedButton(
                         onPressed: () async {

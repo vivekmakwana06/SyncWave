@@ -341,19 +341,7 @@ class _homePageState extends State<homePage> {
         print("Failed to create host: $error");
       });
 
-      // // Adding the GestureDetector code here
-      // syncMusic = true;
-      // await docSync.set({
-      //   'musicName': widget.musicName,
-      //   'artistName': widget.artistName,
-      //   'imgUrl': widget.imgUrl,
-      //   'songUrl': widget.songUrl,
-      // });
-
-      // MusicDetailPage(
-      //   result: result.toString(),
-      //   isCreatingHost: true,
-      // );
+    
     } else {
       print("User email is null");
     }

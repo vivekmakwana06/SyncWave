@@ -187,17 +187,14 @@ class _MusicDetailPageState extends State<MusicDetailPage>
   void handlePlayPause() async {
     if (isPlaying) {
       await assetsAudioPlayer.pause();
-      setState(() {
-        isPlaying = false;
-      });
+      updatePlaybackState(false); 
     } else {
       await assetsAudioPlayer.play();
-      setState(() {
-        isPlaying = true;
-      });
+      updatePlaybackState(true); 
     }
-    updateSyncDocument();
-    updatePlaybackState(isPlaying);
+    setState(() {
+      isPlaying = !isPlaying;
+    });
   }
 
   void updateSyncDocument() {
@@ -497,10 +494,10 @@ class _MusicDetailPageState extends State<MusicDetailPage>
               max: duration.inSeconds.toDouble(),
               min: 0.0,
               onChanged: (value) {
-                setState(() {
-                  position = Duration(seconds: value.toInt());
-                });
-                seekMusic(Duration(seconds: value.toInt()));
+                // setState(() {
+                //   position = Duration(seconds: value.toInt());
+                // });
+                // seekMusic(Duration(seconds: value.toInt()));
               },
             ),
             Padding(
@@ -528,11 +525,9 @@ class _MusicDetailPageState extends State<MusicDetailPage>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    onPressed: () {
-                      skipBackward();
-                    },
+                    onPressed: () {},
                     icon: const Icon(
-                      Icons.replay_10,
+                      Icons.skip_previous,
                       color: Colors.white,
                       size: 30,
                     ),
@@ -560,11 +555,9 @@ class _MusicDetailPageState extends State<MusicDetailPage>
                         handlePlayPause();
                       }),
                   IconButton(
-                    onPressed: () {
-                      skipForward();
-                    },
+                    onPressed: () {},
                     icon: const Icon(
-                      Icons.forward_10,
+                      Icons.skip_next,
                       color: Colors.white,
                       size: 30,
                     ),
@@ -618,7 +611,7 @@ class _MusicDetailPageState extends State<MusicDetailPage>
 }
 
 class FavoriteSongsProvider extends ChangeNotifier {
-FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late List<String> _favoriteSongs;
   late String _userId;
 
@@ -690,8 +683,6 @@ FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
     notifyListeners(); // Notify listeners about the change in favorite status
   }
-
-
 
   void removeFromFavoritesFirestore(String documentId) async {
     await _firestore

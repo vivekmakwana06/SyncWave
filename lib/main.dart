@@ -5,7 +5,6 @@ import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:sync_music/AdminPanel/AdminPage.dart';
 import 'package:sync_music/screens/LoginRegisterPage.dart';
 import 'package:sync_music/screens/music_detail_page.dart';
 import 'package:sync_music/screens/root_app.dart';
@@ -68,11 +67,7 @@ class MyApp extends StatelessWidget {
               return AuthGate();
             } else if (snapshot.hasData && snapshot.data != null) {
               User user = snapshot.data!;
-              if (AuthService.isAdminUser(user.email!, "vivek_makwana_")) {
-                return AdminDashboard();
-              } else {
-                return RootApp(userEmail: user.email!);
-              }
+              return RootApp(userEmail: user.email!);
             } else {
               return AuthGate();
             }
@@ -85,11 +80,6 @@ class MyApp extends StatelessWidget {
 }
 
 class AuthService {
-  static bool isAdminUser(String email, String password) {
-    // Your implementation here
-    return email == 'vivekmakwana@gmail.com' && password == 'vivek_makwana_';
-  }
-
   static Future<User?> getCurrentUser() async {
     return FirebaseAuth.instance.currentUser;
   }
@@ -130,17 +120,10 @@ class _SplashScreenState extends State<SplashScreen>
       User? user = FirebaseAuth.instance.currentUser;
 
       if (user != null) {
-        bool isAdmin = AuthService.isAdminUser(user.email!, "vivek_makwana_");
-
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) {
-            if (isAdmin) {
-              return AdminDashboard();
-            } else {
-              return MyApp(userEmail: user.email!);
-            }
-          }),
+          MaterialPageRoute(
+              builder: (context) => MyApp(userEmail: user.email!)),
         );
       } else {
         Navigator.pushReplacement(

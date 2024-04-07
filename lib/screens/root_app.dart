@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sync_music/screens/MusicPage.dart';
 import 'package:sync_music/screens/homepage.dart';
-import 'package:sync_music/screens/MyLibraryPage.dart';
+import 'package:sync_music/screens/Profile.dart';
 import 'package:salomon_bottom_bar/salomon_bottom_bar.dart';
 
 import '../../theme/colors.dart';

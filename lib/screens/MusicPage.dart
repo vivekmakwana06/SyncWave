@@ -65,20 +65,20 @@ class _CollectionState extends State<Collection>
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop(); 
               },
               child: Text("Cancel"),
             ),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop(); // Close the dialog
-                Navigator.pop(context); // Navigate back to the previous page
+                Navigator.of(context).pop();
+                Navigator.pop(context); 
 
                 // Update party_status to false in party collection
                 await FirebaseFirestore.instance
                     .collection("party")
                     .doc(widget
-                        .result!) // Assuming widget.result contains the party document ID
+                        .result!)
                     .update({'party_status': false});
               },
               child: Text("OK"),
@@ -93,8 +93,8 @@ class _CollectionState extends State<Collection>
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        exitHost(); // Call exitHost() when the back button is pressed
-        return true; // Return true to allow the back navigation
+        exitHost();
+        return true; 
       },
       child: Scaffold(
         backgroundColor: Color(0xFF221e3b),
@@ -398,7 +398,7 @@ class _CollectionState extends State<Collection>
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
               child: Text("Cancel"),
             ),
@@ -417,7 +417,6 @@ class _CollectionState extends State<Collection>
   }
 
   Future<void> performDelete(String documentId) async {
-    // Delete the song with the specified documentId from the user's CustomCollection collection
     try {
       // Assuming userId is not null
       await FirebaseFirestore.instance
