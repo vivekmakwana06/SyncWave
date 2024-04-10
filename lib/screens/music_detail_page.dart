@@ -187,14 +187,17 @@ class _MusicDetailPageState extends State<MusicDetailPage>
   void handlePlayPause() async {
     if (isPlaying) {
       await assetsAudioPlayer.pause();
-      updatePlaybackState(false); 
+      setState(() {
+        isPlaying = false;
+      });
     } else {
       await assetsAudioPlayer.play();
-      updatePlaybackState(true); 
+      setState(() {
+        isPlaying = true;
+      });
     }
-    setState(() {
-      isPlaying = !isPlaying;
-    });
+    updateSyncDocument();
+    updatePlaybackState(isPlaying);
   }
 
   void updateSyncDocument() {
@@ -519,54 +522,69 @@ class _MusicDetailPageState extends State<MusicDetailPage>
             const SizedBox(
               height: 20,
             ),
-            Padding(
-              padding: const EdgeInsets.only(left: 90, right: 30),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(
-                      Icons.skip_previous,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Visibility(
+                  visible: !(widget.isCreatingHost ?? false),
+                  child: IconButton(
+                    onPressed: () {
+                      skipBackward();
+                    },
+                    icon: Icon(
+                      Icons.replay_10,
                       color: Colors.white,
                       size: 30,
                     ),
                   ),
-                  IconButton(
-                      iconSize: 80,
-                      icon: Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment(-0.95, 0.0),
-                            end: Alignment(1.0, 0.0),
-                            colors: [Color(0xff6157ff), Color(0xffee49fd)],
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Icon(
-                            isPlaying ? Icons.pause : Icons.play_arrow,
-                            size: 45,
-                            color: Colors.white,
-                          ),
-                        ),
+                ),
+                SizedBox(
+                  width: 20,
+                ),
+                // Play/Pause Button
+                IconButton(
+                  iconSize: 100,
+                  icon: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment(-0.95, 0.0),
+                        end: Alignment(1.0, 0.0),
+                        colors: [Color(0xff6157ff), Color(0xffee49fd)],
                       ),
-                      onPressed: () async {
-                        handlePlayPause();
-                      }),
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(
-                      Icons.skip_next,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Icon(
+                        isPlaying ? Icons.pause : Icons.play_arrow,
+                        size: 60,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  onPressed: () async {
+                    handlePlayPause();
+                  },
+                ),
+                SizedBox(
+                  width: 20,
+                ),
+                Visibility(
+                  visible: !(widget.isCreatingHost ?? false),
+                  child: IconButton(
+                    onPressed: () {
+                      skipForward();
+                    },
+                    icon: Icon(
+                      Icons.forward_10,
                       color: Colors.white,
                       size: 30,
                     ),
                   ),
-                  SizedBox(
-                    width: 10,
-                  ),
-                ],
-              ),
+                ),
+                SizedBox(
+                  width: 10,
+                ),
+              ],
             ),
             GestureDetector(
               onTap: () async {

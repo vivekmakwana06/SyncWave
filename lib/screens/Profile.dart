@@ -248,12 +248,12 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                 leading: Icon(
                   Icons.photo_library,
                   color: Colors.white,
-                  size: 20,
+                  size: 22,
                 ),
                 title: Text(
                   'Upload from Gallery',
                   style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 21,
                       color: Colors.white,
                       fontWeight: FontWeight.bold),
                 ),
@@ -268,12 +268,12 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                 leading: Icon(
                   Icons.camera_alt,
                   color: Colors.white,
-                  size: 20,
+                  size: 22,
                 ),
                 title: Text(
                   'Capture from Camera',
                   style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 21,
                       color: Colors.white,
                       fontWeight: FontWeight.bold),
                 ),

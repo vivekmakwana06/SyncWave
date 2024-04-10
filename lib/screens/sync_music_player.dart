@@ -39,7 +39,7 @@ class _SyncMusicPlayerState extends State<SyncMusicPlayer> {
         // Document exists
         bool isPlaying =
             (snapshot.data() as Map<String, dynamic>?)?['isPlaying'] ?? false;
-        bool hostExited =
+        bool exited =
             (snapshot.data() as Map<String, dynamic>?)?['party_status'] ??
                 false;
 
@@ -49,16 +49,19 @@ class _SyncMusicPlayerState extends State<SyncMusicPlayer> {
             data = snapshot.data() as Map<String, dynamic>;
             showSyncingScreen = false;
           });
-        } else if (!hostExited) {
+        } else if (!exited) {
           // Music is not playing yet, continue showing syncing screen
           setState(() {
             showSyncingScreen = true;
           });
         } else {
-          // Music is not playing yet, continue showing syncing screen
+          // Host has exited
           setState(() {
             hostExited = true;
           });
+
+          // Refresh UI to display host exited screen
+          setState(() {});
         }
 
         // Update UI with new 'currentPosition' value

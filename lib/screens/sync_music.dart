@@ -141,158 +141,209 @@ class _SyncCodeState extends State<SyncCode> {
   }
 
   Widget buildSyncLogin() {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SizedBox(
-              height: 50,
-            ),
-            Container(
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  begin: Alignment(-0.95, 0.0),
-                  end: Alignment(1.0, 0.0),
-                  colors: [Color(0xff6157ff), Color(0xffee49fd)],
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('party')
+          .where('party_code', isEqualTo: syncController.text)
+          .limit(1)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return CircularProgressIndicator(); // Show a loading indicator while checking the host code validity
+        }
+
+        if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+          bool partyStatus = snapshot.data!.docs[0]['party_status'];
+          if (partyStatus == false) {
+            // Host has already exited, display the appropriate message
+            return buildHostExitedScreen();
+          }
+        }
+
+        // Continue showing the Sync login screen
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: 50,
                 ),
-              ),
-              padding: EdgeInsets.all(30),
-              child: Icon(
-                Icons.music_note,
-                color: Colors.white,
-                size: 150, // Choose your desired size
-              ),
-            ),
-            SizedBox(
-              height: 40,
-            ),
-            Padding(
-              padding: const EdgeInsets.only(left: 30, right: 30),
-              child: TextField(
-                style: const TextStyle(color: Colors.white, fontSize: 30),
-                maxLength: 6,
-                enableIMEPersonalizedLearning: false,
-                keyboardType: TextInputType.number,
-                controller: syncController,
-                decoration: const InputDecoration(
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xffee49fd), width: 2),
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                Container(
+                  height: 250,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment(-0.95, 0.0),
+                      end: Alignment(1.0, 0.0),
+                      colors: [Color(0xff6157ff), Color(0xffee49fd)],
+                    ),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xffee49fd), width: 1),
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  padding: EdgeInsets.all(30),
+                  child: Icon(
+                    Icons.music_note,
+                    color: Colors.white,
+                    size: 150, // Choose your desired size
                   ),
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xffee49fd), width: 3),
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                ),
+                SizedBox(
+                  height: 40,
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 30, right: 30),
+                  child: TextField(
+                    style: const TextStyle(color: Colors.white, fontSize: 30),
+                    maxLength: 6,
+                    enableIMEPersonalizedLearning: false,
+                    keyboardType: TextInputType.number,
+                    controller: syncController,
+                    decoration: const InputDecoration(
+                      focusedBorder: OutlineInputBorder(
+                        borderSide:
+                            BorderSide(color: Color(0xffee49fd), width: 2),
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide:
+                            BorderSide(color: Color(0xffee49fd), width: 1),
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide:
+                            BorderSide(color: Color(0xffee49fd), width: 3),
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                      ),
+                      labelText: 'Enter Sync Code',
+                      labelStyle: TextStyle(color: white, fontSize: 27),
+                    ),
+                    textInputAction: TextInputAction.done,
                   ),
-                  labelText: 'Enter Sync Code',
-                  labelStyle: TextStyle(color: white, fontSize: 27),
                 ),
-                textInputAction: TextInputAction.done,
-              ),
-            ),
-            SizedBox(
-              height: 20,
-            ),
-            if (showEmptyFieldError)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Text(
-                  'Sync code cannot be empty',
-                  style: TextStyle(color: Colors.red, fontSize: 25),
+                SizedBox(
+                  height: 20,
                 ),
-              ),
-            if (showErrorMessage)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Text(
-                  'Wrong host code',
-                  style: TextStyle(color: Colors.red, fontSize: 25),
-                ),
-              ),
-            Container(
-              height: 50,
-              width: 120,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6.0),
-                gradient: LinearGradient(
-                  begin: Alignment(-0.95, 0.0),
-                  end: Alignment(1.0, 0.0),
-                  colors: [Color(0xff6157ff), Color(0xffee49fd)],
-                ),
-              ),
-              margin: EdgeInsets.all(20),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
+                if (showEmptyFieldError)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Text(
+                      'Sync code cannot be empty',
+                      style: TextStyle(color: Colors.red, fontSize: 25),
+                    ),
                   ),
-                  elevation: 20,
+                if (showErrorMessage)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Text(
+                      'Wrong host code',
+                      style: TextStyle(color: Colors.red, fontSize: 25),
+                    ),
+                  ),
+                Container(
+                  height: 50,
+                  width: 120,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6.0),
+                    gradient: LinearGradient(
+                      begin: Alignment(-0.95, 0.0),
+                      end: Alignment(1.0, 0.0),
+                      colors: [Color(0xff6157ff), Color(0xffee49fd)],
+                    ),
+                  ),
+                  margin: EdgeInsets.all(20),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                      elevation: 20,
+                    ),
+                    onPressed: () async {
+                      String hostCode = syncController.text;
+                      if (hostCode.isEmpty) {
+                        setState(() {
+                          showEmptyFieldError = true;
+                          showErrorMessage = false;
+                        });
+                      } else {
+                        // Check if the host code is correct
+                        bool isValidCode = await checkPartyStatus(hostCode);
+                        if (isValidCode) {
+                          bool partyStatus = await checkPartyStatus(hostCode);
+                          if (partyStatus) {
+                            setState(() {
+                              showEmptyFieldError = false;
+                              showErrorMessage = false;
+                            });
+                            // Store sync user data
+                            await storeSyncUserData(hostCode);
+                            await storeSyncUserData1(hostCode);
+                            // Navigate to SyncMusicPlayer screen
+                            Navigator.push(
+                              context,
+                              PageTransition(
+                                alignment: Alignment.bottomCenter,
+                                child: SyncMusicPlayer(docId: hostCode),
+                                type: PageTransitionType.scale,
+                              ),
+                            );
+                          } else {
+                            // Display the host exited screen if the party status is false
+                            setState(() {
+                              showEmptyFieldError = false;
+                              showErrorMessage = false;
+                            });
+                          }
+                        } else {
+                          setState(() {
+                            showEmptyFieldError = false;
+                            showErrorMessage = true;
+                          });
+                        }
+                      }
+                    },
+                    child: const Text(
+                      "Sync",
+                      style: TextStyle(color: Colors.white, fontSize: 27),
+                    ),
+                  ),
                 ),
-                onPressed: () async {
-                  String hostCode = syncController.text;
-                  if (hostCode.isEmpty) {
-                    setState(() {
-                      showEmptyFieldError = true;
-                      showErrorMessage = false;
-                    });
-                  } else {
-                    // Check if the host code is correct
-                    bool isValidCode = await checkHostCodeValidity(hostCode);
-                    if (isValidCode) {
-                      setState(() {
-                        showEmptyFieldError = false;
-                        showErrorMessage = false;
-                      });
-                      // Store sync user data
-                      await storeSyncUserData(hostCode);
-                      await storeSyncUserData1(hostCode);
-                      // Navigate to SyncMusicPlayer screen
-                      Navigator.push(
-                        context,
-                        PageTransition(
-                          alignment: Alignment.bottomCenter,
-                          child: SyncMusicPlayer(docId: hostCode),
-                          type: PageTransitionType.scale,
-                        ),
-                      );
-                    } else {
-                      setState(() {
-                        showEmptyFieldError = false;
-                        showErrorMessage = true;
-                      });
-                    }
-                  }
-                },
-                child: const Text(
-                  "Sync",
-                  style: TextStyle(color: Colors.white, fontSize: 27),
-                ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
-  Future<bool> checkHostCodeValidity(String hostCode) async {
-    // Query Firestore to check if the host code exists
+  Future<bool> checkPartyStatus(String hostCode) async {
     QuerySnapshot<Map<String, dynamic>> querySnapshot = await FirebaseFirestore
         .instance
         .collection('party')
         .where('party_code', isEqualTo: hostCode)
         .limit(1)
         .get();
+    if (querySnapshot.docs.isNotEmpty) {
+      return querySnapshot.docs[0]['party_status'];
+    }
+    // If no document found, consider party status as false
+    return false;
+  }
 
-    return querySnapshot.docs.isNotEmpty;
+  Widget buildHostExitedScreen() {
+    return Container(
+      color: Color(0xFF221e3b),
+      child: Center(
+        child: Text(
+          "This host has already exited.",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+          ),
+        ),
+      ),
+    );
   }
 }
