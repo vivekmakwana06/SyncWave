@@ -17,7 +17,7 @@ class SyncMusicDetailPage extends StatefulWidget {
 
   final Function(String) onSongUrlChanged;
 
-  const SyncMusicDetailPage({
+  const SyncMusicDetailPage({ 
     Key? key,
     required this.title,
     required this.description,
